@@ -422,8 +422,13 @@ body {
 /* =========================================================
    COMPONENTS & FEEDBACK
    ========================================================= */
-.form-group {
-    margin-bottom: 18px;
+/* Clase que envuelve a cada etiqueta con su respectivo input/select */
+.form-group { 
+    display: flex;
+    flex-direction: column;
+    gap: 5px;                 /* Distancia ultra corta entre el texto y su input */
+    margin-bottom: 0px;       /* Eliminamos márgenes viejos; el 'gap' del contenedor maneja la separación */
+    width: 100%;
 }
 
 /* Improved Spacing */
@@ -580,20 +585,27 @@ select option {
 
 
 /* Modals Center & Blur */
-.hologram-modal {
-    position: fixed;
-    inset: 0;
-    z-index: 10000;
-    display: none;
-    /* Controlled by JS */
-    justify-content: center;
-    align-items: center;
-    background: rgba(0, 0, 0, 0.7);
-    backdrop-filter: blur(8px);
+.hologram-content h2, .hologram-content .titulo { 
+    position: relative;
+    margin: 0 0 10px 0;       /* Empuja el contenido de abajo sin encimarse */
+    line-height: 1.2;
+    padding-bottom: 5px;
 }
 
 .hologram-content {
     animation: modalSlide 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    /* CONTROL DE VISUALIZACIÓN COMPACTA */
+    width: 100%;
+    max-width: 480px;         /* Limita el ancho horizontal para que no se desarme */
+    max-height: 90vh;         /* Evita que se salga de los márgenes superior/inferior de la pantalla */
+    box-sizing: border-box;
+    padding: 20px 25px;       /* Relleno interno armónico (arriba/abajo, lados) */
+    
+    display: flex;
+    flex-direction: column;
+    gap: 14px;                /* Controla de forma estricta la separación vertical de cada bloque */
+    overflow-y: visible;      /* Solo si la pantalla es muy pequeña, permitirá scroll sin romper el diseño */
 }
 
 @keyframes modalSlide {
