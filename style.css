@@ -262,20 +262,28 @@ body {
     display: flex;
     gap: 40px;
     width: 100%;
-    align-items: flex-start;
+    align-items: stretch;
 }
 
-/* Containers */
+/* Corrección para el contenedor del formulario en la vista de Supervisor */
 .agenda-container {
-    flex: 2;
-    /* Increased to give more space */
-    background: var(--panel-bg);
-    border: 1px solid var(--primary-color);
-    box-shadow: var(--glow-cyan);
-    border-radius: 4px;
-    padding: 20px;
-    /* Reduced for compactness */
-    backdrop-filter: blur(10px);
+    width: 100% !important;
+    max-width: 460px !important;    /* Controla el ancho para que no se desarme en pantallas anchas */
+    box-sizing: border-box;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;           /* Reduce drásticamente la distancia vertical entre inputs */
+    padding: 20px !important;       /* Relleno interno armónico */
+    max-height: 85vh !important;   /* Limita la altura de la caja al 85% de la pantalla */
+    overflow-y: auto !important;   /* Si el contenido no cabe, activa el scroll solo en el formulario */
+}
+
+/* Forzar que el formulario interno herede el comportamiento compacto */
+#agendaForm {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;                     /* Distancia automática y corta entre cada campo */
+    width: 100%;
 }
 
 .management-column {
@@ -847,4 +855,12 @@ select option {
 
 #errorModal[style*="display: flex"] {
     display: flex !important;
+}
+/* Ajuste para que el título principal de la página respete los espacios y no se encima */
+.panels-layout::before, 
+h1, h2, .main-title { 
+    position: relative !important;
+    top: 0 !important;
+    margin-bottom: 15px !important;
+    line-height: 1.3 !important;
 }
