@@ -91,7 +91,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const btnHome = document.getElementById('btnHome');
-    if (btnHome) btnHome.onclick = () => window.location.href = 'http://10.170.20.169:3004';
+    if (btnHome) btnHome.onclick = () => window.location.href = 'https://p-asante-vladimir-kvw1.vercel.app/';
 
     // Auto-login removed for security - Always start at login screen
     checkAutoLogin();
@@ -119,6 +119,14 @@ function initSession(user, role) {
     currentRole = role;
     localStorage.setItem('b100_role', role);
     localStorage.setItem('b100_user', user);
+
+    // Assign body class so CSS role-based rules activate correctly
+    document.body.className = role === 'supervisor'
+        ? 'supervisor-mode'
+        : role === 'operario'
+            ? 'operario-mode'
+            : 'provider-mode';
+
     loginOverlay.style.display = 'none';
     appWrapper.style.display = 'flex';
     if (headerControls) headerControls.style.display = 'flex';
@@ -177,7 +185,7 @@ function applyRoleUI() {
         if (tipoDestinoGroup) tipoDestinoGroup.style.display = 'none';
         if (puertaManualGroup) puertaManualGroup.style.display = 'none';
     } else {
-        if (cancelContainer) cancelContainer.style.display = 'block';
+        if (cancelContainer) cancelContainer.style.display = 'flex';
         if (tipoDestinoGroup) tipoDestinoGroup.style.display = 'block';
         if (puertaManualGroup) puertaManualGroup.style.display = 'block';
     }
@@ -428,34 +436,62 @@ function initOperarioPanel() {
     const searchInput = document.getElementById('opSearchInput');
     const btnSearch = document.getElementById('btnOpSearch');
 
+    // CAMBIO: Asegúrate de que enviamos una fecha válida
     if (datePicker) {
         datePicker.onchange = (e) => {
-            if (e.target.value) fetchOperarioAgenda(e.target.value, searchInput.value);
+            const fecha = e.target.value;
+            // Solo llamamos si hay fecha
+            if (fecha) fetchOperarioAgenda(fecha, searchInput ? searchInput.value : '');
         };
     }
 
     if (btnSearch) {
         btnSearch.onclick = () => {
-            if (datePicker.value) fetchOperarioAgenda(datePicker.value, searchInput.value);
+            const fecha = datePicker.value;
+            if (fecha) {
+                fetchOperarioAgenda(fecha, searchInput ? searchInput.value : '');
+            } else {
+                alert("Por favor, selecciona una fecha primero.");
+            }
         };
     }
 }
 
 async function fetchOperarioAgenda(date, search = '') {
-    const res = document.getElementById('opResults');
+    const res = document.getElementById('panelsLayout');
+
+    // 1. FORZAR VISIBILIDAD: Esto asegura que el contenedor aparezca
+    res.style.display = 'flex';
+
+    // 2. MOSTRAR MENSAJE DE CARGA
     res.innerHTML = '<div style="text-align:center; padding:20px; color:var(--primary-color);">SINCRONIZANDO...</div>';
+
+    // ... (el resto de tu consulta a Supabase)
 
     let query = supabaseClient
         .from('agenda_b100')
-        .select('*')
+        .select('id_cita, id, proveedor, hora_inicio, hora_fin, codigo')
         .eq('fecha', date)
-        .neq('estado', 'Eliminado')
+        // EL FILTRO QUE NO DA ERROR 400:
+        .not('estado', 'in', '("Eliminado","Cancelado")')
         .order('hora_inicio', { ascending: true });
 
-    if (search) query = query.ilike('proveedor', `%${search}%`);
+    if (search && search.trim() !== '') {
+        query = query.ilike('proveedor', `%${search}%`);
+    }
 
-    const { data } = await query;
-    if (!data || data.length === 0) { res.innerHTML = '<div style="text-align:center; padding:40px; color:var(--text-muted);">Sin registros.</div>'; return; }
+    const { data, error } = await query;
+
+    if (error) {
+        console.error("Error en fetchOperarioAgenda:", error);
+        res.innerHTML = '<div style="text-align:center; padding:20px; color:red;">Error de carga</div>';
+        return;
+    }
+
+    if (!data || data.length === 0) {
+        res.innerHTML = '<div style="text-align:center; padding:40px; color:var(--text-muted);">Sin registros.</div>';
+        return;
+    }
 
     renderOperarioList(data);
 }
@@ -501,13 +537,16 @@ function renderOperarioList(appointments) {
 }
 
 async function toggleStatus(id, currentStatus, targetStatus) {
-    // Reversible: If same button clicked, go back to Agendado
     const nextStatus = (currentStatus === targetStatus) ? 'Agendado' : targetStatus;
     await updateGenericStatus(id, nextStatus);
 
     const datePicker = document.getElementById('opDatePicker');
     const searchInput = document.getElementById('opSearchInput');
-    fetchOperarioAgenda(datePicker.value, searchInput.value);
+
+    // Aquí es donde disparas el refresco después de hacer clic en el botón
+    if (datePicker && datePicker.value) {
+        fetchOperarioAgenda(datePicker.value, searchInput ? searchInput.value : '');
+    }
 }
 
 async function updateGenericStatus(id, newStatus) {
@@ -621,8 +660,7 @@ async function fetchProvidersAutocomplete(term) {
             .from('agenda_b100')
             .select('id_cita, id, proveedor, hora_inicio, hora_fin, codigo') // Added codigo capture if available
             .eq('fecha', date)
-            .neq('estado', 'Eliminado')
-            .neq('estado', 'Cancelado');
+            .not('estado', 'in', '("Eliminado","Cancelado")')
 
         // If operario, we show everything for that date or filter by term if typing
         // If not operario, we require a term as per previous logic
