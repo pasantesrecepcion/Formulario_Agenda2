@@ -24,13 +24,12 @@
     </header>
 
     <!-- Top Control Cluster (Detached) -->
-    <div class="header-controls" id="headerControls" style="display:none; position:fixed; top:20px; left:0; right:0; width:100%; padding:0 30px; justify-content:space-between; align-items:center;">
+    <div class="header-controls" id="headerControls"
+        style="display:none; position:fixed; top:20px; left:0; right:0; width:100%; padding:0 30px; justify-content:space-between; align-items:center; z-index:10000; pointer-events:none;">
         <div class="header-left" style="pointer-events:auto; display:flex; align-items:center; gap:15px;">
-            <a href="https://p-asante-vladimir-kvw1.vercel.app/">
-                <button id="btnHome" class="home-btn" title="Menú Principal">
-                    <i class="fas fa-home"></i>
-                </button>
-            </a>
+            <button id="btnHome" class="home-btn" title="Menú Principal">
+                <i class="fas fa-home"></i>
+            </button>
             <div id="roleCapsule" class="role-capsule">
                 <i class="fas fa-shield-halved"></i>
                 <span id="roleText">SUPERVISOR</span>
@@ -256,10 +255,10 @@
                     </div>
 
                     <div id="supMgmtResults"
-                        style="display:flex; flex-direction:column; gap:10px; max-height:500px; overflow-y:auto; padding-right:5px;">
+                        style="display: flex; flex-direction: column; gap: 10px; width: 100%; max-height: 400px; overflow-y: auto; padding-right: 10px;">
                         <!-- List of appointments for the day -->
-                        <div style="text-align:center; padding:20px; color:var(--text-muted); font-size:0.7rem;">
-                            Seleccione una fecha para ver citas.
+                        <div style="text-align:center; padding:20px; color:var(--tet-muted); font-size:0.7rem;">
+                            Seleccione una fecha para ver citas.x
                         </div>
                     </div>
                 </div>
