@@ -886,4 +886,118 @@ async function loadIncidentCategories() {
     }
 }
 
-// submitIncident se mantiene IGUAL que tu versión actual
+// =========================================================================
+// REGISTRO DE INCIDENCIAS - MÓDULO LOGÍSTICO B100
+// =========================================================================
+
+async function submitIncident(event) {
+    if (event) event.preventDefault(); // Evita recargas innecesarias
+
+    // 1. Capturar elementos del formulario con tus IDs reales
+    const inputFecha = document.getElementById('incDate');
+    const inputProveedor = document.getElementById('selectedProvName'); // Recibe la selección del autocompletado
+    const selectIncidencia = document.getElementById('incTipo');       // Selector cargado dinámicamente
+    const inputHoraLlegada = document.getElementById('incHoraLlegada'); // Campo de hora de arribo
+
+    // Campos ocultos cargados al seleccionar la cita
+    const inputIdCita = document.getElementById('selectedIdCita');
+    const inputCodigoProv = document.getElementById('selectedProvCodigo');
+    const inputHoraCita = document.getElementById('selectedHCita');
+
+    // 2. Extraer valores actuales
+    const fechaValor = inputFecha && inputFecha.value ? inputFecha.value : new Date().toISOString().split('T')[0];
+    const proveedorNombre = inputProveedor ? inputProveedor.value : '';
+
+    // Convertimos a número si existe, si es "" o no existe, será null
+    const idCitaValor = (inputIdCita && inputIdCita.value !== "") ? parseInt(inputIdCita.value) : null;
+
+    // Convertimos a número si existe, si es "" o no existe, será null
+    const codigoProvValor = (inputCodigoProv && inputCodigoProv.value !== "") ? parseInt(inputCodigoProv.value) : null;
+
+    const horaCitaValor = inputHoraCita && inputHoraCita.value ? inputHoraCita.value : '08:00';
+    const horaLlegadaValor = (inputHoraLlegada && inputHoraLlegada.value !== "") ? inputHoraLlegada.value : null;
+
+    let tipoIncidencia = '';
+    if (selectIncidencia) {
+        tipoIncidencia = selectIncidencia.value;
+    }
+
+    // Validación previa al envío
+    if (!proveedorNombre) {
+        alert("Por favor, busca y selecciona un proveedor válido de la agenda del día.");
+        return;
+    }
+    if (!tipoIncidencia) {
+        alert("Por favor, seleccione el tipo de incidencia.");
+        return;
+    }
+
+    // 3. Procesamiento y cálculo de KPIs de tiempos
+    let hrAtraso = "00:00:00";
+    let hrPerdida = "00:00:00";
+
+    // Convertimos a minúsculas para evaluar la regla de negocio de forma flexible
+    const incidenciaNormalizada = tipoIncidencia.toLowerCase();
+
+    if (incidenciaNormalizada.includes("tarde") || incidenciaNormalizada.includes("atraso")) {
+        if (horaLlegadaValor) {
+            hrAtraso = calcularDiferenciaLogistica(horaCitaValor, horaLlegadaValor);
+        }
+    } else if (incidenciaNormalizada.includes("no vino") || incidenciaNormalizada.includes("faltó")) {
+        hrPerdida = "08:00:00"; // Penalización de tiempo estándar por ausencia
+    }
+
+    // 4. Inserción directa en la tabla de Supabase usando el cliente correcto
+    try {
+        console.log("📤 Registrando incidencia con supabaseClient...");
+
+        const { data, error } = await supabaseClient
+            .from('incidencias_proveedores')
+            .upsert([
+                {
+                    id_cita: idCitaValor,
+                    fecha: fechaValor,
+                    proveedor: proveedorNombre,
+                    codigo: codigoProvValor,
+                    incidencias: tipoIncidencia,
+                    motivos: tipoIncidencia,
+                    hr_atraso: hrAtraso,
+                    hr_perdida: hrPerdida,
+                    tipo: "ATRASO"
+                }
+            ], { onConflict: 'id_cita' }); // <--- IMPORTANTE: Esto le dice qué columna vigilar
+        if (error) throw error;
+
+        alert("¡Incidencia registrada con éxito en Supabase!");
+
+        // Limpiar campos variables tras confirmación exitosa
+        if (inputHoraLlegada) inputHoraLlegada.value = '';
+        if (selectIncidencia) selectIncidencia.value = '';
+
+    } catch (err) {
+        console.error("❌ Error en la inserción:", err.message);
+        alert("No se pudo registrar la incidencia: " + err.message);
+    }
+}
+
+// 🔑 FUNCIÓN DE CÁLCULO LOGÍSTICO (Asegúrate de que quede declarada en el scope global)
+function calcularDiferenciaLogistica(horaCita, horaLlegada) {
+    if (!horaCita || !horaLlegada) return "00:00:00";
+
+    // Separar y mapear formatos "HH:MM" o "HH:MM:SS"
+    const [hCita, mCita] = horaCita.split(':').map(Number);
+    const [hLlegada, mLlegada] = horaLlegada.split(':').map(Number);
+
+    const totalMinutosCita = (hCita * 60) + mCita;
+    const totalMinutosLlegada = (hLlegada * 60) + mLlegada;
+
+    const diferenciaMinutos = totalMinutosLlegada - totalMinutosCita;
+
+    // Si llegó antes o justo a tiempo, no genera horas de retraso para KPI
+    if (diferenciaMinutos <= 0) return "00:00:00";
+
+    const horasAtraso = Math.floor(diferenciaMinutos / 60);
+    const minutosAtraso = diferenciaMinutos % 60;
+
+    return `${String(horasAtraso).padStart(2, '0')}:${String(minutosAtraso).padStart(2, '0')}:00`;
+}
