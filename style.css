@@ -1,28 +1,30 @@
 /* =========================================================
-   CORE B100: SUPREME UI/UX RESTORATION
+   CEDIS B100 — style.css v4.0 DEFINITIVO
+   Correcciones: Operario card cortado | Supervisor sin columna derecha
+   | Móvil apilado | Proveedor sin módulo de gestión
    ========================================================= */
+
 @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Orbitron:wght@500;700&family=Inter:wght@300;400;600&display=swap');
 
+/* =========================================================
+   VARIABLES
+   ========================================================= */
 :root {
     --bg-main: #06090f;
     --panel-bg: rgba(10, 15, 25, 0.95);
     --primary-color: #00ffff;
-    /* Cyan Neon */
     --danger-color: #ff003c;
-    /* Red Neon Standard */
     --incident-red: #ff073a;
-    /* Deep Cyber Red */
-
     --glow-cyan: 0 0 15px rgba(0, 255, 255, 0.4);
     --glow-red: 0 0 15px rgba(255, 7, 58, 0.4);
     --glow-orange: 0 0 15px rgba(255, 140, 0, 0.4);
-
     --text-main: #e2e8f0;
     --text-muted: #8fa3b8;
     --input-bg: #0b111b;
-
     --font-head: 'Orbitron', sans-serif;
     --font-sub: 'Rajdhani', sans-serif;
+    --header-h: 72px;
+    /* altura del header — usada en cálculos */
 }
 
 [data-theme="light"] {
@@ -34,12 +36,18 @@
     --input-bg: #f1f5f9;
 }
 
+/* =========================================================
+   RESET
+   ========================================================= */
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
 
+/* =========================================================
+   BODY
+   ========================================================= */
 body {
     font-family: 'Inter', sans-serif;
     background-color: var(--bg-main);
@@ -48,13 +56,15 @@ body {
     width: 100vw;
     overflow: hidden;
     display: flex;
-    justify-content: center;
+    flex-direction: column;
+    justify-content: flex-start;
     align-items: center;
     perspective: 1000px;
-    /* Crucial for 3D effect */
 }
 
-/* CYBER-3D GRID BACKGROUND */
+/* =========================================================
+   FONDO 3D GRID
+   ========================================================= */
 .grid-background {
     position: fixed;
     top: 50%;
@@ -92,7 +102,7 @@ body {
 }
 
 /* =========================================================
-   LOGIN MODULE (Perfectly Centered & Cyan Focused)
+   MÓDULO LOGIN
    ========================================================= */
 .login-overlay {
     position: fixed;
@@ -165,19 +175,21 @@ body {
 }
 
 /* =========================================================
-   HEADER: SUPREME CEDIS CONTROL
+   HEADER — Ocupa espacio físico real (position: relative)
    ========================================================= */
 .header-bar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
+    position: relative;
+    width: 100%;
+    height: var(--header-h);
+    min-height: var(--header-h);
+    flex-shrink: 0;
     display: flex;
-    justify-content: center;
+    justify-content: space-between;
     align-items: center;
-    padding: 30px 60px;
+    padding: 0 20px;
     z-index: 1000;
     pointer-events: none;
+    box-sizing: border-box;
 }
 
 .main-title {
@@ -185,22 +197,19 @@ body {
     left: 50%;
     transform: translateX(-50%);
     font-family: var(--font-head);
-    font-size: 1.4rem;
-    letter-spacing: 4px;
+    font-size: clamp(0.85rem, 1.8vw, 1.35rem);
+    letter-spacing: clamp(2px, 0.4vw, 4px);
     color: #fff;
-    /* Pure White as requested */
     text-shadow: 0 0 20px rgba(0, 243, 255, 0.6);
     text-transform: uppercase;
     font-weight: 700;
+    max-width: 55%;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-/* Control Cluster Fixing Redirection */
-.header-controls {
-    pointer-events: none;
-    /* Inherited from plan, but handled via child pointers */
-}
-
-/* Role Identity Capsule (Left) */
 .role-capsule {
     display: flex;
     align-items: center;
@@ -214,13 +223,36 @@ body {
     font-size: 0.75rem;
     letter-spacing: 2px;
     box-shadow: inset 0 0 10px rgba(0, 243, 255, 0.1);
+    pointer-events: auto;
 }
 
 .role-capsule i {
     font-size: 0.9rem;
 }
 
-/* Circular Buttons (Right) */
+.home-btn {
+    background: rgba(10, 15, 25, 0.4);
+    backdrop-filter: blur(4px);
+    border: 1px solid var(--primary-color);
+    color: var(--primary-color);
+    width: 44px;
+    height: 44px;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: auto;
+}
+
+.home-btn:hover {
+    background: var(--primary-color);
+    color: #fff;
+    box-shadow: 0 0 15px var(--primary-color);
+    transform: translateY(-2px);
+}
+
 .logout-btn-circular {
     background: rgba(255, 0, 60, 0.15);
     border: 1px solid var(--danger-color);
@@ -245,7 +277,7 @@ body {
 }
 
 /* =========================================================
-   MAIN APP WRAPPER (1080p Optimized)
+   WRAPPER PRINCIPAL
    ========================================================= */
 .wrapper {
     position: relative;
@@ -254,67 +286,124 @@ body {
     max-width: 1400px;
     display: flex;
     flex-direction: column;
-    margin-top: 80px;
-    /* Reduced to avoid overflow */
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    margin-top: 8px;
 }
 
+/* =========================================================
+   PANELS LAYOUT — DOS COLUMNAS
+   (Supervisor y Operario-agenda comparten este layout)
+   ========================================================= */
 .panels-layout {
     display: flex;
-    gap: 40px;
-    width: 100%;
-    align-items: stretch;
+    gap: clamp(12px, 2.5vw, 28px);
+    width: 90%;
+    margin-left: auto;
+    height: 100%;
+    align-items: flex-start;
+    justify-content: flex-end;
+    min-height: 0;
+    overflow: hidden;
 }
 
-/* Corrección para el contenedor del formulario en la vista de Supervisor */
+/* =========================================================
+   COLUMNA IZQUIERDA — Formulario de registro de cita
+   ========================================================= */
 .agenda-container {
-    width: 100% !important;
-    max-width: 460px !important;    /* Controla el ancho para que no se desarme en pantallas anchas */
+    /* Flex: crece con prioridad — es el panel principal */
+    flex: 2 1 auto;
+    max-width: 560px;
+    min-width: 280px;
+    /* Altura: toda la pantalla disponible bajo el header */
+    height: calc(100vh - var(--header-h) - 16px);
+    /* Scroll interno */
+    overflow-y: auto;
+    overflow-x: hidden;
+    /* Padding: 80px abajo = botón AGENDAR siempre visible */
+    padding: 22px 22px 88px 22px;
     box-sizing: border-box;
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 12px !important;           /* Reduce drásticamente la distancia vertical entre inputs */
-    padding: 20px !important;       /* Relleno interno armónico */
-    max-height: 85vh !important;   /* Limita la altura de la caja al 85% de la pantalla */
-    overflow-y: auto !important;   /* Si el contenido no cabe, activa el scroll solo en el formulario */
+    /* Estilo */
+    background: var(--panel-bg);
+    border: 1px solid var(--primary-color);
+    box-shadow: var(--glow-cyan);
+    border-radius: 4px;
+    backdrop-filter: blur(10px);
+    /* Flex interno */
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    /* Scrollbar Firefox */
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 240, 255, 0.5) rgba(3, 10, 22, 0.6);
 }
 
-/* Forzar que el formulario interno herede el comportamiento compacto */
 #agendaForm {
     display: flex;
     flex-direction: column;
-    gap: 12px;                     /* Distancia automática y corta entre cada campo */
+    gap: 14px;
     width: 100%;
 }
 
+/* =========================================================
+   COLUMNA DERECHA — Módulo de gestión
+   (Supervisor y Operario-supervisor pueden verla)
+   ========================================================= */
 .management-column {
-    flex: 1;
-    max-width: 320px;
-    /* Reduced by ~25% to be more compact as requested */
+    flex: 1 1 auto;
+    max-width: 380px;
+    min-width: 240px;
     display: flex;
     flex-direction: column;
-    gap: 15px;
-    /* Tighter gap */
+    gap: 12px;
+    height: calc(100vh - var(--header-h) - 16px);
+    min-height: 0;
+    overflow: hidden;
 }
 
-/* NEW: Management List Design */
+.management-column>*:first-child {
+    flex-shrink: 0;
+}
+
+.glass-panel {
+    background: var(--panel-bg);
+    border: 1px solid rgba(0, 255, 255, 0.15);
+    border-radius: 4px;
+    padding: 18px;
+    box-sizing: border-box;
+}
+
+/* Lista de citas con scroll */
 .mgmt-list-container {
     background: var(--panel-bg);
     border: 1px solid rgba(0, 255, 255, 0.2);
     border-radius: 4px;
-    padding: 20px;
+    padding: 14px 14px 50px 14px;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 240, 255, 0.5) rgba(3, 10, 22, 0.6);
 }
 
+/* =========================================================
+   TARJETAS DE CITAS — Nombres completos, botones visibles
+   ========================================================= */
 .mgmt-row {
     background: rgba(255, 255, 255, 0.03);
     border-left: 3px solid var(--text-muted);
-    padding: 8px 12px;
-    /* Reduced for compactness */
+    padding: 10px 12px;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 12px;
+    min-width: 0;
+    min-height: 60px;
     transition: 0.3s;
     animation: slideIn 0.3s ease-out;
 }
@@ -333,49 +422,97 @@ body {
 
 .mgmt-row:hover {
     background: rgba(255, 255, 255, 0.06);
-    transform: scale(1.02);
+    transform: scale(1.01);
 }
 
 .mgmt-info {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 3px;
+    min-width: 0;
+    flex: 1;
+    overflow: hidden;
 }
 
+/* Nombre: Rajdhani (compacta), legible en espacio reducido */
 .mgmt-name {
-    font-size: 0.7rem;
-    /* Reduced for compactness */
+    font-size: 0.72rem;
     font-weight: 700;
     color: var(--primary-color);
-    font-family: var(--font-head);
+    font-family: var(--font-sub);
+    /* Rajdhani: más estrecha que Orbitron */
     text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    display: block;
+}
+
+/* En móvil: el nombre envuelve en 2 líneas para no cortarse */
+@media (max-width: 768px) {
+    .mgmt-name {
+        white-space: normal;
+        overflow: visible;
+        text-overflow: unset;
+        font-size: 0.68rem;
+        line-height: 1.3;
+        word-break: break-word;
+    }
 }
 
 .mgmt-meta {
-    font-size: 0.55rem;
-    /* Reduced for compactness */
+    font-size: 0.6rem;
     color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.3;
 }
 
+/* Botones: nunca se comprimen */
 .mgmt-actions {
     display: flex;
-    gap: 8px;
+    gap: 5px;
+    flex-shrink: 0;
+    align-items: center;
 }
 
-/* Reversible Status Buttons */
+/* Franjas de estado */
+.row-agendado {
+    border-left-color: #EAB308;
+}
+
+.row-oc {
+    border-left-color: #10B981;
+}
+
+.row-recepcionado {
+    border-left-color: #3B82F6;
+}
+
+.row-cancelado {
+    border-left-color: #EF4444;
+}
+
+/* =========================================================
+   BOTONES DE ESTADO
+   ========================================================= */
 .btn-status {
-    width: 32px;
-    height: 32px;
+    width: 30px;
+    height: 30px;
     border-radius: 4px;
     border: 1px solid rgba(255, 255, 255, 0.1);
     background: rgba(255, 255, 255, 0.05);
     color: #fff;
     cursor: pointer;
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     transition: 0.3s;
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
 }
 
 .btn-status.active-oc {
@@ -405,58 +542,33 @@ body {
     filter: grayscale(1);
 }
 
-/* Status Stripes */
-.row-agendado {
-    border-left-color: #EAB308;
-}
-
-/* Yellow */
-.row-oc {
-    border-left-color: #10B981;
-}
-
-/* Green */
-.row-recepcionado {
-    border-left-color: #3B82F6;
-}
-
-/* Blue */
-.row-cancelado {
-    border-left-color: #EF4444;
-}
-
-/* Red */
-
 /* =========================================================
-   COMPONENTS & FEEDBACK
+   COMPONENTES — Labels, inputs, selects, botones
    ========================================================= */
-/* Clase que envuelve a cada etiqueta con su respectivo input/select */
-.form-group { 
+.form-group {
     display: flex;
     flex-direction: column;
-    gap: 5px;                 /* Distancia ultra corta entre el texto y su input */
-    margin-bottom: 0px;       /* Eliminamos márgenes viejos; el 'gap' del contenedor maneja la separación */
+    gap: 6px;
+    margin-bottom: 0;
     width: 100%;
 }
 
-/* Improved Spacing */
 label {
     display: flex;
     align-items: center;
     font-family: var(--font-sub);
-    font-size: 0.7rem;
+    font-size: 0.82rem;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 2px;
+    letter-spacing: 1.5px;
     color: #ffffff;
-    /* Pure White as requested */
-    margin-bottom: 10px;
+    margin-bottom: 4px;
     opacity: 0.95;
 }
 
 label i {
-    font-size: 0.9rem;
-    margin-right: 10px;
+    font-size: 1rem;
+    margin-right: 8px;
     color: var(--primary-color);
 }
 
@@ -467,11 +579,12 @@ select {
     color: var(--primary-color) !important;
     border: 1px solid rgba(0, 255, 255, 0.3);
     border-radius: 4px;
-    padding: 14px;
-    font-size: 0.95rem;
+    padding: 14px 12px;
+    font-size: 1rem;
     font-family: var(--font-sub);
     outline: none;
     transition: 0.3s;
+    box-sizing: border-box;
 }
 
 input:focus,
@@ -480,50 +593,29 @@ select:focus {
     box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
 }
 
-/* Dropdown Legibility */
 select option {
     background: #0b111b;
     color: #00ffff;
 }
 
-/* Buttons Animation */
+input::placeholder {
+    color: rgba(0, 255, 255, 0.35);
+    font-size: 0.9rem;
+}
+
 .btn-submit,
 .btn-management-sec,
 .btn-management-warning {
     width: 100%;
-    padding: 12px;
+    padding: 14px;
     border-radius: 4px;
-    /* Reduced padding */
     cursor: pointer;
     transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     font-family: var(--font-sub);
     font-weight: 700;
+    font-size: 0.95rem;
     text-transform: uppercase;
     letter-spacing: 2px;
-}
-
-/* HOME BUTTON */
-.home-btn {
-    background: rgba(10, 15, 25, 0.4);
-    backdrop-filter: blur(4px);
-    border: 1px solid var(--primary-color);
-    color: var(--primary-color);
-    width: 44px;
-    height: 44px;
-    border-radius: 4px;
-    cursor: pointer;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    pointer-events: auto;
-}
-
-.home-btn:hover {
-    background: var(--primary-color);
-    color: #fff;
-    box-shadow: 0 0 15px var(--primary-color);
-    transform: translateY(-2px);
 }
 
 .btn-submit {
@@ -568,17 +660,54 @@ select option {
     color: white;
 }
 
-/* Provider View: Centered & Sharp */
-.provider-mode #panelsLayout {
-    justify-content: center;
+/* =========================================================
+   SCROLLBARS WEBKIT — Cyberpunk cyan
+   ========================================================= */
+::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
 }
 
-.provider-mode #agendaContainer {
-    max-width: 600px;
-    flex: none;
-    padding: 50px;
+::-webkit-scrollbar-track {
+    background: rgba(3, 10, 22, 0.8);
+    border-radius: 10px;
 }
 
+::-webkit-scrollbar-thumb {
+    background: rgba(0, 240, 255, 0.45);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 240, 255, 0.85);
+}
+
+.agenda-container::-webkit-scrollbar,
+.mgmt-list-container::-webkit-scrollbar,
+.autocomplete-dropdown::-webkit-scrollbar {
+    width: 5px;
+}
+
+.agenda-container::-webkit-scrollbar-track,
+.mgmt-list-container::-webkit-scrollbar-track {
+    background: rgba(3, 10, 22, 0.8);
+    border-radius: 10px;
+}
+
+.agenda-container::-webkit-scrollbar-thumb,
+.mgmt-list-container::-webkit-scrollbar-thumb {
+    background: rgba(0, 240, 255, 0.5);
+    border-radius: 10px;
+}
+
+.agenda-container::-webkit-scrollbar-thumb:hover,
+.mgmt-list-container::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 240, 255, 0.9);
+}
+
+/* =========================================================
+   ANIMACIONES
+   ========================================================= */
 @keyframes fadeIn {
     from {
         opacity: 0;
@@ -589,31 +718,6 @@ select option {
         opacity: 1;
         transform: translateY(0);
     }
-}
-
-
-/* Modals Center & Blur */
-.hologram-content h2, .hologram-content .titulo { 
-    position: relative;
-    margin: 0 0 10px 0;       /* Empuja el contenido de abajo sin encimarse */
-    line-height: 1.2;
-    padding-bottom: 5px;
-}
-
-.hologram-content {
-    animation: modalSlide 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    
-    /* CONTROL DE VISUALIZACIÓN COMPACTA */
-    width: 100%;
-    max-width: 480px;         /* Limita el ancho horizontal para que no se desarme */
-    max-height: 90vh;         /* Evita que se salga de los márgenes superior/inferior de la pantalla */
-    box-sizing: border-box;
-    padding: 20px 25px;       /* Relleno interno armónico (arriba/abajo, lados) */
-    
-    display: flex;
-    flex-direction: column;
-    gap: 14px;                /* Controla de forma estricta la separación vertical de cada bloque */
-    overflow-y: visible;      /* Solo si la pantalla es muy pequeña, permitirá scroll sin romper el diseño */
 }
 
 @keyframes modalSlide {
@@ -628,8 +732,44 @@ select option {
     }
 }
 
-/* EOF */
-/* Autocomplete Styles */
+/* =========================================================
+   MODALES
+   ========================================================= */
+.hologram-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: none;
+    justify-content: center;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(8px);
+}
+
+.hologram-content {
+    animation: modalSlide 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    width: 100%;
+    max-width: 480px;
+    max-height: 90vh;
+    box-sizing: border-box;
+    padding: 20px 25px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    overflow-y: auto;
+}
+
+#errorModal {
+    display: none !important;
+}
+
+#errorModal[style*="display: flex"] {
+    display: flex !important;
+}
+
+/* =========================================================
+   AUTOCOMPLETE
+   ========================================================= */
 .autocomplete-wrapper {
     position: relative;
     width: 100%;
@@ -655,7 +795,7 @@ select option {
     cursor: pointer;
     border-bottom: 1px solid rgba(0, 255, 255, 0.1);
     transition: 0.2s;
-    font-size: 0.8rem;
+    font-size: 0.85rem;
     display: flex;
     flex-direction: column;
     gap: 4px;
@@ -667,12 +807,12 @@ select option {
 
 .autocomplete-item strong {
     color: var(--primary-color);
-    font-family: var(--font-head);
-    font-size: 0.75rem;
+    font-family: var(--font-sub);
+    font-size: 0.82rem;
 }
 
 .autocomplete-item .meta-tag {
-    font-size: 0.6rem;
+    font-size: 0.62rem;
     padding: 2px 6px;
     border-radius: 2px;
     text-transform: uppercase;
@@ -693,17 +833,9 @@ select option {
     color: var(--text-muted);
 }
 
-.autocomplete-dropdown::-webkit-scrollbar {
-    width: 6px;
-}
-
-.autocomplete-dropdown::-webkit-scrollbar-thumb {
-    background: var(--primary-color);
-    border-radius: 10px;
-}
-
 /* =========================================================
-   INCIDENT MODULE DESIGN (Cyber-Red Version)
+   MÓDULO DE INCIDENCIAS (Operario)
+   CORRECCIÓN: contenedor con scroll, sin corte
    ========================================================= */
 .incident-btn {
     background: rgba(255, 7, 58, 0.1);
@@ -729,31 +861,39 @@ select option {
     transform: translateY(-2px);
 }
 
+/* Card rojo: tamaño natural + scroll si la pantalla es baja */
 .incident-card {
     background: rgba(15, 5, 5, 0.98);
     border: 1px solid var(--incident-red);
     border-top: 4px solid var(--incident-red);
-    /* Industrial accent */
     box-shadow: 0 0 30px rgba(255, 7, 58, 0.2);
     width: 100%;
-    max-width: 400px;
-    /* Reduced for stylized look */
-    padding: 35px;
+    max-width: 480px;
+    /* SIN altura fija: crece con el contenido */
+    padding: 30px 35px 35px 35px;
     border-radius: 4px;
     position: relative;
     animation: modalSlide 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    box-sizing: border-box;
+    overflow-y: auto;
+    /* Scroll si la pantalla es muy pequeña */
+    max-height: calc(100vh - var(--header-h) - 40px);
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 7, 58, 0.4) rgba(15, 5, 5, 0.8);
 }
 
-@keyframes modalSlide {
-    from {
-        opacity: 0;
-        transform: translateY(-30px) scale(0.95);
-    }
+.incident-card::-webkit-scrollbar {
+    width: 4px;
+}
 
-    to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
+.incident-card::-webkit-scrollbar-track {
+    background: rgba(15, 5, 5, 0.8);
+    border-radius: 10px;
+}
+
+.incident-card::-webkit-scrollbar-thumb {
+    background: rgba(255, 7, 58, 0.5);
+    border-radius: 10px;
 }
 
 .incident-card h2 {
@@ -761,7 +901,7 @@ select option {
     font-family: var(--font-head);
     font-size: 1.1rem;
     letter-spacing: 2px;
-    margin-bottom: 30px;
+    margin-bottom: 28px;
     text-align: center;
     text-transform: uppercase;
 }
@@ -804,63 +944,233 @@ select option {
     filter: brightness(1.2);
 }
 
-
 /* =========================================================
-   SYMMETRICAL GRID LAYOUT (Operario View Centered)
+   VISTA OPERARIO — Solo el card de incidencia
+   CORRECCIÓN: contenedor perfectamente centrado, sin overflow
    ========================================================= */
 .operario-side-layout,
 #dashboardContainer {
     display: flex;
     justify-content: center;
-    align-items: center;
-    /* Center horizontally and vertically */
+    align-items: flex-start;
+    /* alinea al tope, no al centro, para que se vea entero */
     width: 100%;
-    min-height: 70vh;
-    /* Takes most of the screen */
-    margin: 20px auto;
-    padding: 20px;
+    /* Altura exacta disponible — sin overflow, sin recorte */
+    height: calc(100vh - var(--header-h) - 16px);
+    overflow-y: auto;
+    /* CORRECCIÓN: scroll si la pantalla es muy pequeña */
+    overflow-x: hidden;
+    padding: 10px 20px 30px 20px;
+    box-sizing: border-box;
     animation: fadeIn 0.6s ease;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 7, 58, 0.4) rgba(3, 10, 22, 0.6);
 }
 
-.incident-card {
-    background: rgba(15, 5, 5, 0.98);
-    border: 1px solid var(--incident-red);
-    border-top: 4px solid var(--incident-red);
-    box-shadow: 0 0 40px rgba(255, 7, 58, 0.3);
-    width: 100%;
-    max-width: 500px !important;
-    /* Slightly wider for the centered view */
-    padding: 35px;
-    border-radius: 8px;
-    position: relative;
-    animation: modalSlide 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    backdrop-filter: blur(20px);
+/* Cuando el operario está en pantalla, ocultar paneles de agenda */
+.operario-mode .panels-layout,
+.operario-mode #panelsLayout {
+    display: none !important;
 }
 
-/* Specific Neons */
+.operario-mode #dashboardContainer {
+    display: flex !important;
+}
+
 .operario-side-layout .glass-panel {
     border: 1px solid var(--primary-color);
     box-shadow: 0 0 25px rgba(0, 255, 255, 0.1);
 }
 
-.operario-side-layout .incident-card {
-    border: 1px solid var(--incident-red);
-    box-shadow: 0 0 25px rgba(255, 7, 58, 0.1);
-}
+/* =========================================================
+   VISTA PROVEEDOR
+   REGLA DE ORO: El proveedor SOLO agenda. Nunca ve gestión.
+   ========================================================= */
 
-/* Ensure system alert is NEVER visible by default */
-#errorModal {
+/* Ocultar completamente el módulo de gestión al proveedor */
+.provider-mode .management-column,
+.provider-mode #managementColumn,
+.provider-mode [class*="management-column"] {
     display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
 }
 
-#errorModal[style*="display: flex"] {
-    display: flex !important;
+/* Formulario centrado y con ancho cómodo para móvil y tablet */
+.provider-mode .panels-layout,
+.provider-mode #panelsLayout {
+    justify-content: center !important;
 }
-/* Ajuste para que el título principal de la página respete los espacios y no se encima */
-.panels-layout::before, 
-h1, h2, .main-title { 
-    position: relative !important;
-    top: 0 !important;
-    margin-bottom: 15px !important;
-    line-height: 1.3 !important;
+
+.provider-mode .agenda-container,
+.provider-mode #agendaContainer {
+    max-width: 640px !important;
+    width: 100% !important;
+    flex: none !important;
+    margin: 0 auto !important;
 }
+
+/* =========================================================
+   RESPONSIVO MÓVIL
+   Orden visual: Título → Formulario → Módulo Gestión
+   ========================================================= */
+@media (max-width: 768px) {
+
+    :root {
+        --header-h: 58px;
+    }
+
+    .header-bar {
+        padding: 0 10px;
+    }
+
+    .main-title {
+        font-size: clamp(0.6rem, 3.5vw, 0.9rem);
+        max-width: 48%;
+        letter-spacing: 1px;
+    }
+
+    .role-capsule {
+        font-size: 0.62rem;
+        padding: 4px 10px;
+        letter-spacing: 1px;
+    }
+
+    .home-btn {
+        width: 38px;
+        height: 38px;
+    }
+
+    .logout-btn-circular {
+        width: 34px;
+        height: 34px;
+    }
+
+    .wrapper {
+        width: 100%;
+        padding: 0 8px;
+        margin-top: 6px;
+    }
+
+    /* En móvil: columna única, apilado */
+    .panels-layout {
+        flex-direction: column !important;
+        height: auto !important;
+        max-height: calc(100vh - var(--header-h) - 10px);
+        overflow-y: auto !important;
+        overflow-x: hidden;
+        gap: 12px;
+        /* Padding inferior para que el último panel respire */
+        padding-bottom: 20px;
+    }
+
+    /* Formulario: altura automática con scroll */
+    .agenda-container {
+        max-width: 100% !important;
+        width: 100% !important;
+        height: auto !important;
+        max-height: 72vh;
+        flex: none !important;
+        padding: 16px 14px 88px 14px;
+    }
+
+    /* Columna de gestión: después del formulario */
+    .management-column {
+        max-width: 100% !important;
+        width: 100% !important;
+        height: auto !important;
+        min-height: 0;
+        flex: none !important;
+    }
+
+    /* En móvil: cada fila apila nombre arriba + botones abajo */
+    .mgmt-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+        padding: 10px 10px 8px 10px;
+    }
+
+    .mgmt-info {
+        width: 100%;
+    }
+
+    .mgmt-actions {
+        width: 100%;
+        justify-content: flex-end;
+        gap: 6px;
+    }
+
+    .btn-status {
+        width: 36px;
+        height: 36px;
+        font-size: 0.8rem;
+    }
+
+    .mgmt-list-container {
+        height: auto !important;
+        max-height: 60vh;
+    }
+
+    /* Inputs táctiles */
+    input,
+    select {
+        padding: 15px 12px;
+        font-size: 1rem;
+    }
+
+    label {
+        font-size: 0.8rem;
+    }
+
+    .btn-status {
+        width: 32px;
+        height: 32px;
+    }
+
+    .btn-submit {
+        padding: 16px;
+        font-size: 1rem;
+    }
+
+    /* Operario en móvil */
+    .operario-side-layout,
+    #dashboardContainer {
+        padding: 8px 10px 30px 10px;
+        height: auto;
+        max-height: calc(100vh - var(--header-h) - 10px);
+    }
+
+    .incident-card {
+        max-width: 100% !important;
+        padding: 24px 20px 30px 20px;
+    }
+
+    /* Proveedor en móvil: ancho total */
+    .provider-mode .agenda-container {
+        max-width: 100% !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .main-title {
+        font-size: 0.6rem;
+        max-width: 44%;
+    }
+
+    .home-btn,
+    .logout-btn-circular {
+        width: 32px;
+        height: 32px;
+    }
+
+    input,
+    select {
+        font-size: 1rem;
+        padding: 14px 10px;
+    }
+}
+
+/* =========================================================
+   FIN — CEDIS B100 style.css v4.0
+   ========================================================= */
