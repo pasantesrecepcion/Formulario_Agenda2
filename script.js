@@ -600,8 +600,8 @@ function initIncidentModule() {
 
             // Mostrar todos los proveedores del día al seleccionar fecha
             if (date) {
-                fetchProvidersAutocomplete('');
-            }
+    document.getElementById('incAutocompleteResults').style.display = 'none';
+}
         };
     }
 
@@ -625,14 +625,20 @@ function initIncAutocomplete() {
     let activeRequest = 0; // 🔑 Contador para cancelar requests viejos
 
     freshInput.addEventListener('input', function () {
-        clearTimeout(debounceTimer);
-        const term = this.value.trim();
-        const date = document.getElementById('incDate').value;
+         console.log("⌨️ INPUT:", this.value);
 
-        if (!date) {
-            resultsDiv.style.display = 'none';
-            return;
-        }
+    clearTimeout(debounceTimer);
+
+    const term = this.value.trim();
+
+    console.log("🔍 TERM:", term);
+
+    const date = document.getElementById('incDate').value;
+
+    if (!date) {
+        resultsDiv.style.display = 'none';
+        return;
+    }
 
         // Mostrar hint con 1 sola letra
         if (term.length === 1) {
@@ -704,6 +710,7 @@ function initIncAutocomplete() {
 }
 
 async function fetchProvidersAutocomplete(term) {
+        console.log("🚀 FETCH RECIBE:", term);
     const resultsDiv = document.getElementById('incAutocompleteResults');
     const date = document.getElementById('incDate').value;
     const input = document.getElementById('incProveedorSearch');
@@ -723,11 +730,12 @@ async function fetchProvidersAutocomplete(term) {
         if (term && term.trim().length > 0) {
             query = query.ilike('proveedor', `%${term.trim()}%`);
         }
-
+console.log("QUERY TERM:", term);
         const { data: scheduled, error } = await query;
 
         if (error) throw error;
-
+console.log("RESULTADOS:", scheduled?.length);
+console.log(scheduled);
         // --- AQUÍ ESTÁ TU LÓGICA ORIGINAL QUE SÍ FUNCIONABA ---
         resultsDiv.innerHTML = '';
 
@@ -892,13 +900,11 @@ async function submitIncident(event) {
     }
 
     // 4. Inserción directa en la tabla de Supabase usando el cliente correcto
-    try {
+   try {
     console.log("📤 Registrando incidencia con supabaseClient...");
 
-    const idCitaValor = document.getElementById('selectedIdCita').value;
-
     console.log('ID CITA ANTES DE GUARDAR:', idCitaValor);
-    console.log('PROVEEDOR:', document.getElementById('selectedProvName').value);
+    console.log('PROVEEDOR:', proveedorNombre);
 
     if (!idCitaValor) {
         showError("Debe seleccionar una cita de la lista.");
@@ -926,8 +932,24 @@ async function submitIncident(event) {
     if (error) throw error;
 
     showNeonToast("¡Incidencia registrada con éxito!");
+setTimeout(() => {
+    fetchProvidersAutocomplete('');
+}, 500);
+    // LIMPIAR FORMULARIO
+    document.getElementById('incProveedorSearch').value = '';
+    document.getElementById('selectedIdCita').value = '';
+    document.getElementById('selectedProvName').value = '';
+    document.getElementById('selectedHCita').value = '';
+    document.getElementById('selectedHFinCita').value = '';
+    document.getElementById('incHoraLlegada').value = '';
 
-} catch (err) {
+    document.getElementById('incAutocompleteResults').innerHTML = '';
+    document.getElementById('incAutocompleteResults').style.display = 'none';
+
+    document.getElementById('incTipo').selectedIndex = 0;
+
+}
+catch (err) {
     console.error(err);
 }
 }
