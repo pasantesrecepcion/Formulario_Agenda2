@@ -700,6 +700,9 @@ function initIncAutocomplete() {
 }
 
 async function fetchProvidersAutocomplete(term) {
+
+    console.log("TERM RECIBIDO:", term);
+
     const resultsDiv = document.getElementById('incAutocompleteResults');
     const date = document.getElementById('incDate').value;
     const input = document.getElementById('incProveedorSearch');
