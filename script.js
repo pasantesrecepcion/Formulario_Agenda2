@@ -469,24 +469,28 @@ async function fetchOperarioAgenda(date, search = '') {
     // ... (el resto de tu consulta a Supabase)
 
     let query = supabaseClient
-        .from('agenda_b100')
-        .select('id_cita, proveedor, hora_inicio, hora_fin')
-        .eq('fecha', date)
-        // EL FILTRO QUE NO DA ERROR 400:
-        .not('estado', 'in', '("Eliminado","Cancelado")')
-        .order('hora_inicio', { ascending: true });
+    .from('agenda_b100')
+    .select(`
+        id_cita,
+        proveedor,
+        hora_inicio,
+        hora_fin,
+        puerta,
+        estado
+    `)
+    .eq('fecha', date)
+    .not('estado', 'in', '("Eliminado","Cancelado")')
+    .order('hora_inicio', { ascending: true });
+    if (term && term.trim().length > 0) {
+    query = query.ilike('proveedor', `%${term.trim()}%`);
+}
 
-    if (search && search.trim() !== '') {
-        query = query.ilike('proveedor', `%${search}%`);
-    }
+    const { data: scheduled, error } = await query;
 
-    const { data, error } = await query;
-
-    if (error) {
-        console.error("Error en fetchOperarioAgenda:", error);
-        res.innerHTML = '<div style="text-align:center; padding:20px; color:red;">Error de carga</div>';
-        return;
-    }
+if (error) {
+    console.error('ERROR SUPABASE:', error);
+    throw error;
+}
 
     if (!data || data.length === 0) {
         res.innerHTML = '<div style="text-align:center; padding:40px; color:var(--text-muted);">Sin registros.</div>';
@@ -700,9 +704,6 @@ function initIncAutocomplete() {
 }
 
 async function fetchProvidersAutocomplete(term) {
-
-    console.log("TERM RECIBIDO:", term);
-
     const resultsDiv = document.getElementById('incAutocompleteResults');
     const date = document.getElementById('incDate').value;
     const input = document.getElementById('incProveedorSearch');
@@ -759,13 +760,24 @@ async function fetchProvidersAutocomplete(term) {
                     </div>`;
 
                 item.onclick = () => {
-                    document.getElementById('incProveedorSearch').value = s.proveedor;
-                    document.getElementById('selectedIdCita').value = s.id_cita || '';
-                    document.getElementById('selectedProvName').value = s.proveedor;
-                    document.getElementById('selectedHCita').value = s.hora_inicio || '';
-                    document.getElementById('selectedHFinCita').value = s.hora_fin || '';
-                    resultsDiv.style.display = 'none';
-                };
+
+     console.log("CLICK EN:", s.proveedor);
+     console.log("ID:", s.id_cita);
+
+     document.getElementById('incProveedorSearch').value = s.proveedor;
+     document.getElementById('selectedIdCita').value = s.id_cita || '';
+ 
+     console.log(
+        "ID GUARDADO:",
+        document.getElementById('selectedIdCita').value
+     );
+
+                  document.getElementById('selectedProvName').value = s.proveedor;
+                 document.getElementById('selectedHCita').value = s.hora_inicio || '';
+                 document.getElementById('selectedHFinCita').value = s.hora_fin || '';
+
+               resultsDiv.style.display = 'none';
+             };
                 resultsDiv.appendChild(item);
             });
         } else {
@@ -827,10 +839,12 @@ async function submitIncident(event) {
     // 1. Capturar elementos del formulario con tus IDs reales
     const inputFecha = document.getElementById('incDate');
     const inputProveedor = document.getElementById('selectedProvName'); // Recibe la selección del autocompletado
-    const selectIncidencia = document.getElementById('incTipo');       // Selector cargado dinámicamente
+    const seectIncidencia = document.getElementById('incTipo');       // Selector cargado dinámicamente
     const inputHoraLlegada = document.getElementById('incHoraLlegada'); // Campo de hora de arribo
 
     // Campos ocultos cargados al seleccionar la cita
+    const inputIdCita = document.getElementById('selectedIdCita');
+    const inputCodigoProv = document.getElementById('selectedProvCodigo');
     const inputHoraCita = document.getElementById('selectedHCita');
 
     // 2. Extraer valores actuales
@@ -838,8 +852,10 @@ async function submitIncident(event) {
     const proveedorNombre = inputProveedor ? inputProveedor.value : '';
 
     // Convertimos a número si existe, si es "" o no existe, será null
+    const idCitaValor = (inputIdCita && inputIdCita.value !== "") ? parseInt(inputIdCita.value) : null;
 
     // Convertimos a número si existe, si es "" o no existe, será null
+    const codigoProvValor = (inputCodigoProv && inputCodigoProv.value !== "") ? parseInt(inputCodigoProv.value) : null;
 
     const horaCitaValor = inputHoraCita && inputHoraCita.value ? inputHoraCita.value : '08:00';
     const horaLlegadaValor = (inputHoraLlegada && inputHoraLlegada.value !== "") ? inputHoraLlegada.value : null;
@@ -858,6 +874,7 @@ async function submitIncident(event) {
         alert("Por favor, seleccione el tipo de incidencia.");
         return;
     }
+    console.log("ID CITA ANTES DE GUARDAR:", idCitaValor);
 
     // 3. Procesamiento y cálculo de KPIs de tiempos
     let hrAtraso = "00:00:00";
@@ -876,35 +893,43 @@ async function submitIncident(event) {
 
     // 4. Inserción directa en la tabla de Supabase usando el cliente correcto
     try {
-        console.log("📤 Registrando incidencia con supabaseClient...");
+    console.log("📤 Registrando incidencia con supabaseClient...");
 
-        const { data, error } = await supabaseClient
-    .from('incidencias_proveedores')
-    .insert([
-        {
-            fecha: fechaValor,
-            proveedor: proveedorNombre,
-            incidencias: tipoIncidencia,
-            motivos: tipoIncidencia,
-            hr_atraso: hrAtraso,
-            hr_perdida: hrPerdida,
-            tipo: "ATRASO"
-        }
-    ]);
+    const idCitaValor = document.getElementById('selectedIdCita').value;
 
-        if (error) throw error;
+    console.log('ID CITA ANTES DE GUARDAR:', idCitaValor);
+    console.log('PROVEEDOR:', document.getElementById('selectedProvName').value);
 
-        // En lugar de alert("¡Incidencia procesada con éxito!");
-        showNeonToast("¡Incidencia registrada con éxito!");
-
-        // Limpiar campos variables tras confirmación exitosa
-        if (inputHoraLlegada) inputHoraLlegada.value = '';
-        if (selectIncidencia) selectIncidencia.value = '';
-
-    } catch (err) {
-        console.error("❌ Error en la inserción:", err.message);
-        alert("No se pudo registrar la incidencia: " + err.message);
+    if (!idCitaValor) {
+        showError("Debe seleccionar una cita de la lista.");
+        return;
     }
+
+    const { data, error } = await supabaseClient
+        .from('incidencias_proveedores')
+        .upsert([
+            {
+                id_cita: idCitaValor,
+                fecha: fechaValor,
+                proveedor: proveedorNombre,
+                codigo: codigoProvValor,
+                incidencias: tipoIncidencia,
+                motivos: tipoIncidencia,
+                hr_atraso: hrAtraso,
+                hr_perdida: hrPerdida,
+                tipo: "ATRASO"
+            }
+        ], {
+            onConflict: 'id_cita'
+        });
+
+    if (error) throw error;
+
+    showNeonToast("¡Incidencia registrada con éxito!");
+
+} catch (err) {
+    console.error(err);
+}
 }
 
 // 🔑 FUNCIÓN DE CÁLCULO LOGÍSTICO (Asegúrate de que quede declarada en el scope global)
