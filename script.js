@@ -611,6 +611,7 @@ function initIncidentModule() {
 }
 
 function initIncAutocomplete() {
+    console.log("🚀 initIncAutocomplete ejecutada");
     const input = document.getElementById('incProveedorSearch');
     const resultsDiv = document.getElementById('incAutocompleteResults');
 
@@ -620,10 +621,13 @@ function initIncAutocomplete() {
     const newInput = input.cloneNode(true);
     input.parentNode.replaceChild(newInput, input);
     const freshInput = document.getElementById('incProveedorSearch');
+console.log("✅ initIncAutocomplete ejecutado");
+console.log("INPUT:", freshInput);
 
     let debounceTimer;
     let activeRequest = 0; // 🔑 Contador para cancelar requests viejos
 
+    console.log("LISTENER INPUT CONECTADO");
     freshInput.addEventListener('input', function () {
          console.log("⌨️ INPUT:", this.value);
 
