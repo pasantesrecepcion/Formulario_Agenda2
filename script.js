@@ -704,117 +704,58 @@ async function fetchProvidersAutocomplete(term) {
     const date = document.getElementById('incDate').value;
     const input = document.getElementById('incProveedorSearch');
 
-    console.log('📡 fetchProvidersAutocomplete INICIO - Término:', `"${term}"`, 'Fecha:', date);
-
-    if (!date) {
-        console.log('❌ Sin fecha seleccionada');
-        return;
-    }
+    if (!date) return;
 
     resultsDiv.innerHTML = '<div style="padding:10px; font-size:0.7rem; color:var(--primary-color);">🔍 Buscando...</div>';
     resultsDiv.style.display = 'block';
 
     try {
-        // CONSULTA SIMPLE Y DIRECTA
         let query = supabaseClient
             .from('agenda_b100')
             .select('id_cita, proveedor, hora_inicio, hora_fin, puerta, estado')
             .eq('fecha', date)
             .order('hora_inicio', { ascending: true });
 
-        // Aplicar filtro SOLO si hay término
         if (term && term.trim().length > 0) {
-            const searchTerm = term.trim();
-            console.log('🔍 Aplicando ILIKE con:', `%${searchTerm}%`);
-            query = query.ilike('proveedor', `%${searchTerm}%`);
+            query = query.ilike('proveedor', `%${term.trim()}%`);
         }
 
-        console.log('📤 Ejecutando consulta a Supabase...');
         const { data: scheduled, error } = await query;
 
-        console.log('📥 Respuesta de Supabase:', {
-            total: scheduled?.length || 0,
-            error: error || 'ninguno',
-            datos: scheduled
-        });
+        if (error) throw error;
 
-        if (error) {
-            console.error('❌ Error de Supabase:', error);
-            throw error;
-        }
-
+        // --- AQUÍ ESTÁ TU LÓGICA ORIGINAL QUE SÍ FUNCIONABA ---
         resultsDiv.innerHTML = '';
 
         if (scheduled && scheduled.length > 0) {
-            // Contador
             const headerInfo = document.createElement('div');
-            headerInfo.style.cssText = `
-                padding: 6px 10px;
-                font-size: 0.6rem;
-                color: #0ff;
-                border-bottom: 1px solid rgba(255,255,255,0.1);
-                background: rgba(0,0,0,0.3);
-            `;
-            headerInfo.textContent = term
-                ? `📋 ${scheduled.length} coincidencias para "${term}"`
-                : `📋 ${scheduled.length} proveedores hoy`;
+            headerInfo.style.cssText = `padding: 6px 10px; font-size: 0.6rem; color: #0ff; border-bottom: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3);`;
+            headerInfo.textContent = term ? `📋 ${scheduled.length} coincidencias para "${term}"` : `📋 ${scheduled.length} proveedores hoy`;
             resultsDiv.appendChild(headerInfo);
 
-            // Lista de proveedores
             scheduled.forEach(s => {
                 const item = document.createElement('div');
                 item.className = 'autocomplete-item';
-                item.style.cssText = `
-                    padding: 10px 12px;
-                    cursor: pointer;
-                    border-bottom: 1px solid rgba(255,255,255,0.05);
-                    transition: background 0.15s;
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                `;
+                item.style.cssText = `padding: 10px 12px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.05); transition: background 0.15s; display: flex; justify-content: space-between; align-items: center;`;
 
-                // Resaltar coincidencia
+                // Resaltado de texto
                 let proveedorDisplay = s.proveedor;
                 if (term && term.trim().length > 0) {
                     const escapedTerm = term.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                     const regex = new RegExp(`(${escapedTerm})`, 'gi');
-                    proveedorDisplay = s.proveedor.replace(regex,
-                        '<span style="background: rgba(0,255,255,0.3); color: #fff; padding: 2px 4px; border-radius: 3px;">$1</span>'
-                    );
-                }
-
-                // Badge según estado real
-                const est = (s.estado || 'Agendado').toLowerCase();
-                let estadoBadge = '';
-                if (est === 'recepcionado') {
-                    estadoBadge = '<span style="font-size:0.6rem;color:#4ecdc4;background:rgba(78,205,196,0.15);padding:2px 6px;border-radius:3px;white-space:nowrap;">✓ Recepcionado</span>';
-                } else if (est === 'cancelado') {
-                    estadoBadge = '<span style="font-size:0.6rem;color:#ff6b6b;background:rgba(255,107,107,0.15);padding:2px 6px;border-radius:3px;white-space:nowrap;">✗ Cancelado</span>';
-                } else if (est.includes('packing')) {
-                    estadoBadge = '<span style="font-size:0.6rem;color:#ffd93d;background:rgba(255,217,61,0.15);padding:2px 6px;border-radius:3px;white-space:nowrap;">📄 Packing</span>';
-                } else {
-                    estadoBadge = '<span style="font-size:0.6rem;color:#888;background:rgba(255,255,255,0.05);padding:2px 6px;border-radius:3px;white-space:nowrap;">🕐 Agendado</span>';
+                    proveedorDisplay = s.proveedor.replace(regex, '<span style="background: rgba(0,255,255,0.3); color: #fff; padding: 2px 4px; border-radius: 3px;">$1</span>');
                 }
 
                 item.innerHTML = `
-    <div style="flex: 1;">
-        <div style="display: flex; gap: 8px; margin-bottom: 4px;">
-            <span style="font-size:0.65rem; color:#0ff;">⏰ ${s.hora_inicio || '--:--'}</span>
-            <span style="font-size:0.65rem; color:#888;">🚪 ${s.puerta || 'N/A'}</span>
-        </div>
-        <strong style="font-size:0.85rem;">${proveedorDisplay}</strong>
-    </div>
-    ${estadoBadge}
-`;
+                    <div style="flex: 1;">
+                        <div style="display: flex; gap: 8px; margin-bottom: 4px;">
+                            <span style="font-size:0.65rem; color:#0ff;">⏰ ${s.hora_inicio || '--:--'}</span>
+                            <span style="font-size:0.65rem; color:#888;">🚪 ${s.puerta || 'N/A'}</span>
+                        </div>
+                        <strong style="font-size:0.85rem;">${proveedorDisplay}</strong>
+                    </div>`;
 
-                // Hover
-                item.onmouseover = () => item.style.background = 'rgba(0,255,255,0.1)';
-                item.onmouseout = () => item.style.background = 'transparent';
-
-                // Click para seleccionar
                 item.onclick = () => {
-                    console.log('✅ Proveedor seleccionado:', s.proveedor);
                     document.getElementById('incProveedorSearch').value = s.proveedor;
                     document.getElementById('selectedIdCita').value = s.id_cita || '';
                     document.getElementById('selectedProvName').value = s.proveedor;
@@ -822,27 +763,14 @@ async function fetchProvidersAutocomplete(term) {
                     document.getElementById('selectedHFinCita').value = s.hora_fin || '';
                     resultsDiv.style.display = 'none';
                 };
-
                 resultsDiv.appendChild(item);
             });
         } else {
-            resultsDiv.innerHTML = `
-                <div style="padding: 20px; text-align: center;">
-                    <div style="font-size: 1.5rem; margin-bottom: 8px;">📭</div>
-                    <div style="font-size: 0.8rem; color: #888;">Sin proveedores</div>
-                    <div style="font-size: 0.65rem; color: #666; margin-top: 4px;">
-                        ${term ? `No se encontró "${term}"` : 'No hay registros para esta fecha'}
-                    </div>
-                </div>
-            `;
+            resultsDiv.innerHTML = `<div style="padding: 20px; text-align: center; color: #888;">No hay proveedores</div>`;
         }
     } catch (err) {
-        console.error('❌ ERROR en fetchProvidersAutocomplete:', err);
-        resultsDiv.innerHTML = `
-            <div style="padding: 12px; color: #ff6b6b; text-align: center;">
-                ❌ Error: ${err.message || 'Error de conexión'}
-            </div>
-        `;
+        console.error('❌ ERROR:', err);
+        resultsDiv.innerHTML = `<div style="padding: 12px; color: #ff6b6b; text-align: center;">Error: ${err.message}</div>`;
     }
 }
 
@@ -965,10 +893,12 @@ async function submitIncident(event) {
                     hr_perdida: hrPerdida,
                     tipo: "ATRASO"
                 }
-            ], { onConflict: 'id_cita' }); // <--- IMPORTANTE: Esto le dice qué columna vigilar
+            ], { onConflict: 'id_cita' });
+
         if (error) throw error;
 
-        alert("¡Incidencia registrada con éxito en Supabase!");
+        // En lugar de alert("¡Incidencia procesada con éxito!");
+        showNeonToast("¡Incidencia registrada con éxito!");
 
         // Limpiar campos variables tras confirmación exitosa
         if (inputHoraLlegada) inputHoraLlegada.value = '';
@@ -1000,4 +930,19 @@ function calcularDiferenciaLogistica(horaCita, horaLlegada) {
     const minutosAtraso = diferenciaMinutos % 60;
 
     return `${String(horasAtraso).padStart(2, '0')}:${String(minutosAtraso).padStart(2, '0')}:00`;
+}
+function showNeonToast(message) {
+    let toast = document.getElementById('neon-toast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'neon-toast';
+        document.body.appendChild(toast);
+    }
+    toast.textContent = message;
+    toast.style.display = 'block';
+
+    // Auto-ocultar después de 2.5 segundos
+    setTimeout(() => {
+        toast.style.display = 'none';
+    }, 2500);
 }
