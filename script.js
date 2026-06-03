@@ -839,7 +839,7 @@ async function submitIncident(event) {
     // 1. Capturar elementos del formulario con tus IDs reales
     const inputFecha = document.getElementById('incDate');
     const inputProveedor = document.getElementById('selectedProvName'); // Recibe la selección del autocompletado
-    const seectIncidencia = document.getElementById('incTipo');       // Selector cargado dinámicamente
+    const selectIncidencia = document.getElementById('incTipo');       // Selector cargado dinámicamente
     const inputHoraLlegada = document.getElementById('incHoraLlegada'); // Campo de hora de arribo
 
     // Campos ocultos cargados al seleccionar la cita
