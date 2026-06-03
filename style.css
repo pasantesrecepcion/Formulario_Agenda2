@@ -1171,11 +1171,6 @@ input::placeholder {
     }
 }
 
-¡Entendido ! Vamos a hacer que la notificación sea imposible de ignorar. La convertiremos en un Modal estilo Neón superpuesto que aparezca justo encima de todo,
-con una animación de entrada impactante. 1. El CSS (Reemplaza el #neon-toast anterior) Copia esto en tu style.css. Este nuevo estilo crea una ventana centrada,
-oscura con borde neón brillante,
-similar a tus paneles de gestión.
-
 /* =========================================================
    NEON MODAL TOAST
    ========================================================= */

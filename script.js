@@ -470,7 +470,7 @@ async function fetchOperarioAgenda(date, search = '') {
 
     let query = supabaseClient
         .from('agenda_b100')
-        .select('id_cita, id, proveedor, hora_inicio, hora_fin, codigo')
+        .select('id_cita, proveedor, hora_inicio, hora_fin')
         .eq('fecha', date)
         // EL FILTRO QUE NO DA ERROR 400:
         .not('estado', 'in', '("Eliminado","Cancelado")')
@@ -828,8 +828,6 @@ async function submitIncident(event) {
     const inputHoraLlegada = document.getElementById('incHoraLlegada'); // Campo de hora de arribo
 
     // Campos ocultos cargados al seleccionar la cita
-    const inputIdCita = document.getElementById('selectedIdCita');
-    const inputCodigoProv = document.getElementById('selectedProvCodigo');
     const inputHoraCita = document.getElementById('selectedHCita');
 
     // 2. Extraer valores actuales
@@ -837,10 +835,8 @@ async function submitIncident(event) {
     const proveedorNombre = inputProveedor ? inputProveedor.value : '';
 
     // Convertimos a número si existe, si es "" o no existe, será null
-    const idCitaValor = (inputIdCita && inputIdCita.value !== "") ? parseInt(inputIdCita.value) : null;
 
     // Convertimos a número si existe, si es "" o no existe, será null
-    const codigoProvValor = (inputCodigoProv && inputCodigoProv.value !== "") ? parseInt(inputCodigoProv.value) : null;
 
     const horaCitaValor = inputHoraCita && inputHoraCita.value ? inputHoraCita.value : '08:00';
     const horaLlegadaValor = (inputHoraLlegada && inputHoraLlegada.value !== "") ? inputHoraLlegada.value : null;
@@ -880,20 +876,18 @@ async function submitIncident(event) {
         console.log("📤 Registrando incidencia con supabaseClient...");
 
         const { data, error } = await supabaseClient
-            .from('incidencias_proveedores')
-            .upsert([
-                {
-                    id_cita: idCitaValor,
-                    fecha: fechaValor,
-                    proveedor: proveedorNombre,
-                    codigo: codigoProvValor,
-                    incidencias: tipoIncidencia,
-                    motivos: tipoIncidencia,
-                    hr_atraso: hrAtraso,
-                    hr_perdida: hrPerdida,
-                    tipo: "ATRASO"
-                }
-            ], { onConflict: 'id_cita' });
+    .from('incidencias_proveedores')
+    .insert([
+        {
+            fecha: fechaValor,
+            proveedor: proveedorNombre,
+            incidencias: tipoIncidencia,
+            motivos: tipoIncidencia,
+            hr_atraso: hrAtraso,
+            hr_perdida: hrPerdida,
+            tipo: "ATRASO"
+        }
+    ]);
 
         if (error) throw error;
 
