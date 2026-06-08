@@ -1,3 +1,4 @@
+console.log("VERSION TEST 2026-06-08");
 let currentRole = null;
 
 // --- SUPABASE CLIENT ---
