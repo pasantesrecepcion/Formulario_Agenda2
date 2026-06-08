@@ -579,6 +579,10 @@ window.onload = () => {
 let searchTimeout;
 
 function initIncidentModule() {
+
+    console.log("🔥 initIncidentModule EJECUTADO");
+    console.log("ROL:", currentRole);
+
     const incDate = document.getElementById('incDate');
     const btnSend = document.getElementById('btnSendIncident');
 
@@ -612,17 +616,21 @@ function initIncidentModule() {
 }
 
 function initIncAutocomplete() {
-    console.log("🚀 initIncAutocomplete ejecutada");
+    console.log("🚀 initIncAutocomplete EJECUTADO");
     const input = document.getElementById('incProveedorSearch');
     const resultsDiv = document.getElementById('incAutocompleteResults');
 
-    if (!input || !resultsDiv) return;
+    if (!input || !resultsDiv) {
+        console.log("❌ No encontró input o resultsDiv");
+        return;
+    }
+    console.log("✅ Input encontrado");
 
     // Clonamos para limpiar listeners previos
     const newInput = input.cloneNode(true);
     input.parentNode.replaceChild(newInput, input);
     const freshInput = document.getElementById('incProveedorSearch');
-console.log("✅ initIncAutocomplete ejecutado");
+console.log("✅ initIncAutocomplete EJECUTADO");
 console.log("INPUT:", freshInput);
 
     let debounceTimer;
