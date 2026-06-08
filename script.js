@@ -118,6 +118,10 @@ document.getElementById('btnLogin').addEventListener('click', () => {
 
 function initSession(user, role) {
     currentRole = role;
+
+    console.log("LOGIN OK");
+    console.log("ROL ASIGNADO:", currentRole);
+    
     localStorage.setItem('b100_role', role);
     localStorage.setItem('b100_user', user);
 
@@ -130,8 +134,12 @@ function initSession(user, role) {
 
     loginOverlay.style.display = 'none';
     appWrapper.style.display = 'flex';
+
     if (headerControls) headerControls.style.display = 'flex';
+    initIncidentModule();
+
     applyRoleUI();
+
     initApp();
 }
 
