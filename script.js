@@ -819,6 +819,7 @@ console.log(
                   document.getElementById('selectedProvName').value = s.proveedor;
                  document.getElementById('selectedHCita').value = s.hora_inicio || '';
                  document.getElementById('selectedHFinCita').value = s.hora_fin || '';
+                 document.getElementById('selectedPuerta').value = s.puerta || '';
 
                resultsDiv.style.display = 'none';
              };
@@ -890,6 +891,7 @@ async function submitIncident(event) {
     const inputIdCita = document.getElementById('selectedIdCita');
     const inputCodigoProv = document.getElementById('selectedProvCodigo');
     const inputHoraCita = document.getElementById('selectedHCita');
+    const inputPuerta = document.getElementById('selectedPuerta');
 
     // 2. Extraer valores actuales
     const fechaValor = inputFecha && inputFecha.value ? inputFecha.value : new Date().toISOString().split('T')[0];
@@ -902,6 +904,7 @@ async function submitIncident(event) {
     const codigoProvValor = (inputCodigoProv && inputCodigoProv.value !== "") ? parseInt(inputCodigoProv.value) : null;
 
     const horaCitaValor = inputHoraCita && inputHoraCita.value ? inputHoraCita.value : '08:00';
+    const puertaValor = inputPuerta ? inputPuerta.value : '';
     const horaLlegadaValor = (inputHoraLlegada && inputHoraLlegada.value !== "") ? inputHoraLlegada.value : null;
 
     let tipoIncidencia = '';
@@ -956,6 +959,8 @@ async function submitIncident(event) {
                 proveedor: proveedorNombre,
                 codigo: codigoProvValor,
                 incidencias: tipoIncidencia,
+                puerta: puertaValor,
+                hora_programada: horaCitaValor,
                 motivos: tipoIncidencia,
                 hr_atraso: hrAtraso,
                 hr_perdida: hrPerdida,
