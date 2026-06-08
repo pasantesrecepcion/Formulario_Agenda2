@@ -121,7 +121,7 @@ function initSession(user, role) {
 
     console.log("LOGIN OK");
     console.log("ROL ASIGNADO:", currentRole);
-    
+
     localStorage.setItem('b100_role', role);
     localStorage.setItem('b100_user', user);
 
@@ -788,14 +788,29 @@ console.log(scheduled);
                         <strong style="font-size:0.85rem;">${proveedorDisplay}</strong>
                     </div>`;
 
-                item.onclick = () => {
+                 item.onclick = async () => {
 
      console.log("CLICK EN:", s.proveedor);
      console.log("ID:", s.id_cita);
 
      document.getElementById('incProveedorSearch').value = s.proveedor;
      document.getElementById('selectedIdCita').value = s.id_cita || '';
- 
+ const { data: provData } = await supabaseClient
+    .from('maestros_proveedores')
+    .select('codigo')
+    .eq('nombre', s.proveedor)
+    .single();
+
+if (provData) {
+    document.getElementById('selectedProvCodigo').value =
+        provData.codigo || '';
+}
+
+console.log(
+    "CODIGO:",
+    document.getElementById('selectedProvCodigo').value
+);
+
      console.log(
         "ID GUARDADO:",
         document.getElementById('selectedIdCita').value
