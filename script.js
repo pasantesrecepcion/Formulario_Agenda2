@@ -755,18 +755,39 @@ console.log("QUERY TERM:", term);
         const { data: scheduled, error } = await query;
 
         if (error) throw error;
+        // Obtener incidencias ya registradas
+const { data: incidencias } = await supabaseClient
+    .from('incidencias_proveedores')
+    .select('id_cita')
+    .eq('fecha', date);
+
+// Lista de ids ya registrados
+const idsRegistrados = new Set(
+    (incidencias || []).map(i => Number(i.id_cita))
+);
+
+// Filtrar citas ya registradas
+const scheduledFiltrado = (scheduled || []).filter(
+    s => !idsRegistrados.has(Number(s.id_cita))
+);
+
+console.log(
+    "PROVEEDORES DISPONIBLES:",
+    scheduledFiltrado.length
+);
+
 console.log("RESULTADOS:", scheduled?.length);
 console.log(scheduled);
         // --- AQUÍ ESTÁ TU LÓGICA ORIGINAL QUE SÍ FUNCIONABA ---
         resultsDiv.innerHTML = '';
 
-        if (scheduled && scheduled.length > 0) {
+        if (scheduledFiltrado && scheduledFiltrado.length > 0) {
             const headerInfo = document.createElement('div');
             headerInfo.style.cssText = `padding: 6px 10px; font-size: 0.6rem; color: #0ff; border-bottom: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3);`;
-            headerInfo.textContent = term ? `📋 ${scheduled.length} coincidencias para "${term}"` : `📋 ${scheduled.length} proveedores hoy`;
+            headerInfo.textContent = term ? `📋 ${scheduledFiltrado.length} coincidencias para "${term}"` : `📋 ${scheduledFiltrado.length} proveedores hoy`;
             resultsDiv.appendChild(headerInfo);
 
-            scheduled.forEach(s => {
+            scheduledFiltrado.forEach(s => {
                 const item = document.createElement('div');
                 item.className = 'autocomplete-item';
                 item.style.cssText = `padding: 10px 12px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.05); transition: background 0.15s; display: flex; justify-content: space-between; align-items: center;`;
@@ -792,6 +813,7 @@ console.log(scheduled);
 
      console.log("CLICK EN:", s.proveedor);
      console.log("ID:", s.id_cita);
+     console.log("PUERTA:", s.puerta);
 
      document.getElementById('incProveedorSearch').value = s.proveedor;
      document.getElementById('selectedIdCita').value = s.id_cita || '';
@@ -820,6 +842,10 @@ console.log(
                  document.getElementById('selectedHCita').value = s.hora_inicio || '';
                  document.getElementById('selectedHFinCita').value = s.hora_fin || '';
                  document.getElementById('selectedPuerta').value = s.puerta || '';
+                 console.log(
+    "PUERTA GUARDADA:",
+    document.getElementById('selectedPuerta').value
+);
 
                resultsDiv.style.display = 'none';
              };
@@ -905,6 +931,7 @@ async function submitIncident(event) {
 
     const horaCitaValor = inputHoraCita && inputHoraCita.value ? inputHoraCita.value : '08:00';
     const puertaValor = inputPuerta ? inputPuerta.value : '';
+    console.log("PUERTA ANTES DE GUARDAR:", puertaValor);
     const horaLlegadaValor = (inputHoraLlegada && inputHoraLlegada.value !== "") ? inputHoraLlegada.value : null;
 
     let tipoIncidencia = '';
