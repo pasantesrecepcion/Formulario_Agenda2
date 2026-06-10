@@ -91,7 +91,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const btnHome = document.getElementById('btnHome');
-    if (btnHome) btnHome.onclick = () => window.location.href = 'https://p-asante-vladimir-kvw1.vercel.app/';
+    if (btnHome) btnHome.onclick = () => window.location.href = 'https://portal-maestro.vercel.app/';
 
     // Auto-login removed for security - Always start at login screen
     checkAutoLogin();
