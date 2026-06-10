@@ -1,3 +1,4 @@
+console.log("VERSION TEST 2026-06-08");
 let currentRole = null;
 
 // --- SUPABASE CLIENT ---
@@ -117,6 +118,10 @@ document.getElementById('btnLogin').addEventListener('click', () => {
 
 function initSession(user, role) {
     currentRole = role;
+
+    console.log("LOGIN OK");
+    console.log("ROL ASIGNADO:", currentRole);
+
     localStorage.setItem('b100_role', role);
     localStorage.setItem('b100_user', user);
 
@@ -129,8 +134,12 @@ function initSession(user, role) {
 
     loginOverlay.style.display = 'none';
     appWrapper.style.display = 'flex';
+
     if (headerControls) headerControls.style.display = 'flex';
+    initIncidentModule();
+
     applyRoleUI();
+
     initApp();
 }
 
@@ -469,24 +478,28 @@ async function fetchOperarioAgenda(date, search = '') {
     // ... (el resto de tu consulta a Supabase)
 
     let query = supabaseClient
-        .from('agenda_b100')
-        .select('id_cita, id, proveedor, hora_inicio, hora_fin, codigo')
-        .eq('fecha', date)
-        // EL FILTRO QUE NO DA ERROR 400:
-        .not('estado', 'in', '("Eliminado","Cancelado")')
-        .order('hora_inicio', { ascending: true });
+    .from('agenda_b100')
+    .select(`
+        id_cita,
+        proveedor,
+        hora_inicio,
+        hora_fin,
+        puerta,
+        estado
+    `)
+    .eq('fecha', date)
+    .not('estado', 'in', '("Eliminado","Cancelado")')
+    .order('hora_inicio', { ascending: true });
+    if (term && term.trim().length > 0) {
+    query = query.ilike('proveedor', `%${term.trim()}%`);
+}
 
-    if (search && search.trim() !== '') {
-        query = query.ilike('proveedor', `%${search}%`);
-    }
+    const { data: scheduled, error } = await query;
 
-    const { data, error } = await query;
-
-    if (error) {
-        console.error("Error en fetchOperarioAgenda:", error);
-        res.innerHTML = '<div style="text-align:center; padding:20px; color:red;">Error de carga</div>';
-        return;
-    }
+if (error) {
+    console.error('ERROR SUPABASE:', error);
+    throw error;
+}
 
     if (!data || data.length === 0) {
         res.innerHTML = '<div style="text-align:center; padding:40px; color:var(--text-muted);">Sin registros.</div>';
@@ -568,15 +581,20 @@ window.onload = () => {
 };
 
 // =========================================================
-// INCIDENT MODULE logic
+// INCIDENT MODULE - VERSIÓN LIMPIA Y FUNCIONAL
 // =========================================================
+
+let searchTimeout;
+
 function initIncidentModule() {
+
+    console.log("🔥 initIncidentModule EJECUTADO");
+    console.log("ROL:", currentRole);
+
     const incDate = document.getElementById('incDate');
-    const incTipo = document.getElementById('incTipo');
-    const incAtrasoSection = document.getElementById('incTimeFields'); // Corrected reference
     const btnSend = document.getElementById('btnSendIncident');
 
-    // Load categories if role is authorized
+    // Cargar categorías si el rol está autorizado
     if (currentRole === 'operario' || currentRole === 'supervisor') {
         loadIncidentCategories();
         initIncAutocomplete();
@@ -593,10 +611,10 @@ function initIncidentModule() {
             document.getElementById('selectedHFinCita').value = '';
             document.getElementById('selectedProvCodigo').value = '';
 
-            // If Operario, fetch today's agenda immediately
-            if (currentRole === 'operario' && date) {
-                fetchProvidersAutocomplete(""); // empty search to trigger "show all" logic
-            }
+            // Mostrar todos los proveedores del día al seleccionar fecha
+            if (date) {
+    document.getElementById('incAutocompleteResults').style.display = 'none';
+}
         };
     }
 
@@ -606,121 +624,245 @@ function initIncidentModule() {
 }
 
 function initIncAutocomplete() {
+    console.log("🚀 initIncAutocomplete EJECUTADO");
     const input = document.getElementById('incProveedorSearch');
-    const results = document.getElementById('incAutocompleteResults');
-    const incDate = document.getElementById('incDate');
+    const resultsDiv = document.getElementById('incAutocompleteResults');
 
-    if (!input) return;
+    if (!input || !resultsDiv) {
+        console.log("❌ No encontró input o resultsDiv");
+        return;
+    }
+    console.log("✅ Input encontrado");
+
+    // Clonamos para limpiar listeners previos
+    const newInput = input.cloneNode(true);
+    input.parentNode.replaceChild(newInput, input);
+    const freshInput = document.getElementById('incProveedorSearch');
+console.log("✅ initIncAutocomplete EJECUTADO");
+console.log("INPUT:", freshInput);
 
     let debounceTimer;
-    input.addEventListener('input', () => {
-        clearTimeout(debounceTimer);
-        const term = input.value.trim();
+    let activeRequest = 0; // 🔑 Contador para cancelar requests viejos
 
-        // Operario can search within their pre-fetched/filtered daily list even with 0 chars if focused
-        // But for consistency we use term length logic for fetching if not already loaded
-        if (currentRole !== 'operario' && term.length < 2) {
-            results.style.display = 'none';
+    console.log("LISTENER INPUT CONECTADO");
+    freshInput.addEventListener('input', function () {
+         console.log("⌨️ INPUT:", this.value);
+
+    clearTimeout(debounceTimer);
+
+    const term = this.value.trim();
+
+    console.log("🔍 TERM:", term);
+
+    const date = document.getElementById('incDate').value;
+
+    if (!date) {
+        resultsDiv.style.display = 'none';
+        return;
+    }
+
+        // Mostrar hint con 1 sola letra
+        if (term.length === 1) {
+            resultsDiv.innerHTML = '<div style="padding:10px;font-size:0.7rem;color:#888;text-align:center;">✏️ Escribe 1 letra más para filtrar...</div>';
+            resultsDiv.style.display = 'block';
             return;
         }
 
-        debounceTimer = setTimeout(() => fetchProvidersAutocomplete(term), 300);
+        // 🔑 Captura el término EN ESTE MOMENTO antes del timeout
+        const termSnapshot = term;
+        activeRequest++; // incrementa antes del timeout
+        const myRequest = activeRequest;
+
+        debounceTimer = setTimeout(() => {
+            // 🔑 Solo ejecuta si no hubo otro request después
+            if (myRequest === activeRequest) {
+                fetchProvidersAutocomplete(termSnapshot);
+            }
+        }, 300);
     });
 
-    // Operario: Show all scheduled when focused/clicked
-    input.addEventListener('click', () => {
-        if (currentRole === 'operario') {
-            fetchProvidersAutocomplete(input.value.trim());
+    // 🔑 SIN listener click — mousedown abre lista SOLO si está cerrada y campo vacío
+    freshInput.addEventListener('mousedown', function (e) {
+        const date = document.getElementById('incDate').value;
+        if (!date) return;
+        if (resultsDiv.style.display !== 'block') {
+            e.preventDefault(); // evita que focus dispare nada más
+            fetchProvidersAutocomplete(this.value.trim());
+            this.focus();
         }
     });
 
-    // Close results when clicking outside
-    document.addEventListener('click', (e) => {
-        if (!input.contains(e.target) && !results.contains(e.target)) {
-            results.style.display = 'none';
+    // Cerrar al hacer clic fuera
+    document.addEventListener('click', function (e) {
+        if (!freshInput.contains(e.target) && !resultsDiv.contains(e.target)) {
+            resultsDiv.style.display = 'none';
+        }
+    });
+
+    // Navegación teclado
+    freshInput.addEventListener('keydown', function (e) {
+        if (resultsDiv.style.display !== 'block') return;
+        const items = resultsDiv.querySelectorAll('.autocomplete-item');
+        const activeItem = resultsDiv.querySelector('.autocomplete-item.active');
+        let index = -1;
+        if (activeItem) items.forEach((item, i) => { if (item === activeItem) index = i; });
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            if (index < items.length - 1) {
+                if (activeItem) activeItem.classList.remove('active');
+                items[index + 1].classList.add('active');
+                items[index + 1].scrollIntoView({ block: 'nearest' });
+            }
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (index > 0) {
+                if (activeItem) activeItem.classList.remove('active');
+                items[index - 1].classList.add('active');
+                items[index - 1].scrollIntoView({ block: 'nearest' });
+            }
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            if (activeItem) activeItem.click();
+        } else if (e.key === 'Escape') {
+            resultsDiv.style.display = 'none';
         }
     });
 }
 
 async function fetchProvidersAutocomplete(term) {
+        console.log("🚀 FETCH RECIBE:", term);
     const resultsDiv = document.getElementById('incAutocompleteResults');
     const date = document.getElementById('incDate').value;
+    const input = document.getElementById('incProveedorSearch');
 
-    if (!date) {
-        showModal('Seleccione una fecha de incidencia primero.', 'CALENDARIO REQUERIDO');
-        return;
-    }
+    if (!date) return;
 
-    resultsDiv.innerHTML = '<div style="padding:10px; font-size:0.7rem; color:var(--primary-color);">Buscando...</div>';
+    resultsDiv.innerHTML = '<div style="padding:10px; font-size:0.7rem; color:var(--primary-color);">🔍 Buscando...</div>';
     resultsDiv.style.display = 'block';
 
     try {
-        // Build query
         let query = supabaseClient
             .from('agenda_b100')
-            .select('id_cita, id, proveedor, hora_inicio, hora_fin, codigo') // Added codigo capture if available
+            .select('id_cita, proveedor, hora_inicio, hora_fin, puerta, estado')
             .eq('fecha', date)
-            .not('estado', 'in', '("Eliminado","Cancelado")')
+            .order('hora_inicio', { ascending: true });
 
-        // If operario, we show everything for that date or filter by term if typing
-        // If not operario, we require a term as per previous logic
-        if (term) {
-            query = query.ilike('proveedor', `%${term}%`);
+        if (term && term.trim().length > 0) {
+            query = query.ilike('proveedor', `%${term.trim()}%`);
         }
+console.log("QUERY TERM:", term);
+        const { data: scheduled, error } = await query;
 
-        const { data: scheduled } = await query;
+        if (error) throw error;
+        // Obtener incidencias ya registradas
+const { data: incidencias } = await supabaseClient
+    .from('incidencias_proveedores')
+    .select('id_cita')
+    .eq('fecha', date);
 
+// Lista de ids ya registrados
+const idsRegistrados = new Set(
+    (incidencias || []).map(i => Number(i.id_cita))
+);
+
+// Filtrar citas ya registradas
+const scheduledFiltrado = (scheduled || []).filter(
+    s => !idsRegistrados.has(Number(s.id_cita))
+);
+
+console.log(
+    "PROVEEDORES DISPONIBLES:",
+    scheduledFiltrado.length
+);
+
+console.log("RESULTADOS:", scheduled?.length);
+console.log(scheduled);
+        // --- AQUÍ ESTÁ TU LÓGICA ORIGINAL QUE SÍ FUNCIONABA ---
         resultsDiv.innerHTML = '';
 
-        // Render Scheduled
-        if (scheduled && scheduled.length > 0) {
-            scheduled.forEach(s => {
+        if (scheduledFiltrado && scheduledFiltrado.length > 0) {
+            const headerInfo = document.createElement('div');
+            headerInfo.style.cssText = `padding: 6px 10px; font-size: 0.6rem; color: #0ff; border-bottom: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3);`;
+            headerInfo.textContent = term ? `📋 ${scheduledFiltrado.length} coincidencias para "${term}"` : `📋 ${scheduledFiltrado.length} proveedores hoy`;
+            resultsDiv.appendChild(headerInfo);
+
+            scheduledFiltrado.forEach(s => {
                 const item = document.createElement('div');
                 item.className = 'autocomplete-item';
+                item.style.cssText = `padding: 10px 12px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.05); transition: background 0.15s; display: flex; justify-content: space-between; align-items: center;`;
+
+                // Resaltado de texto
+                let proveedorDisplay = s.proveedor;
+                if (term && term.trim().length > 0) {
+                    const escapedTerm = term.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    const regex = new RegExp(`(${escapedTerm})`, 'gi');
+                    proveedorDisplay = s.proveedor.replace(regex, '<span style="background: rgba(0,255,255,0.3); color: #fff; padding: 2px 4px; border-radius: 3px;">$1</span>');
+                }
+
                 item.innerHTML = `
-                    <span class="meta-tag tag-scheduled">Cita: ${s.hora_inicio}</span>
-                    <strong>${s.proveedor}</strong>
-                `;
-                item.onclick = () => selectProv(s.proveedor, s.id_cita || s.id, s.hora_inicio, s.hora_fin, s.codigo);
+                    <div style="flex: 1;">
+                        <div style="display: flex; gap: 8px; margin-bottom: 4px;">
+                            <span style="font-size:0.65rem; color:#0ff;">⏰ ${s.hora_inicio || '--:--'}</span>
+                            <span style="font-size:0.65rem; color:#888;">🚪 ${s.puerta || 'N/A'}</span>
+                        </div>
+                        <strong style="font-size:0.85rem;">${proveedorDisplay}</strong>
+                    </div>`;
+
+                 item.onclick = async () => {
+
+     console.log("CLICK EN:", s.proveedor);
+     console.log("ID:", s.id_cita);
+     console.log("PUERTA:", s.puerta);
+
+     document.getElementById('incProveedorSearch').value = s.proveedor;
+     document.getElementById('selectedIdCita').value = s.id_cita || '';
+ const { data: provData } = await supabaseClient
+    .from('maestros_proveedores')
+    .select('codigo')
+    .eq('nombre', s.proveedor)
+    .single();
+
+if (provData) {
+    document.getElementById('selectedProvCodigo').value =
+        provData.codigo || '';
+}
+
+console.log(
+    "CODIGO:",
+    document.getElementById('selectedProvCodigo').value
+);
+
+     console.log(
+        "ID GUARDADO:",
+        document.getElementById('selectedIdCita').value
+     );
+
+                  document.getElementById('selectedProvName').value = s.proveedor;
+                 document.getElementById('selectedHCita').value = s.hora_inicio || '';
+                 document.getElementById('selectedHFinCita').value = s.hora_fin || '';
+                 document.getElementById('selectedPuerta').value = s.puerta || '';
+                 console.log(
+    "PUERTA GUARDADA:",
+    document.getElementById('selectedPuerta').value
+);
+
+               resultsDiv.style.display = 'none';
+             };
                 resultsDiv.appendChild(item);
             });
+        } else {
+            resultsDiv.innerHTML = `<div style="padding: 20px; text-align: center; color: #888;">No hay proveedores</div>`;
         }
-
-        // Priority 2: Master providers (ONLY if NOT Operario)
-        if (currentRole !== 'operario') {
-            const { data: master } = await supabaseClient
-                .from('maestros_proveedores')
-                .select('nombre, codigo')
-                .ilike('nombre', `%${term}%`)
-                .limit(15);
-
-            const scheduledNames = (scheduled || []).map(s => s.proveedor.toLowerCase());
-            if (master && master.length > 0) {
-                master.forEach(m => {
-                    if (scheduledNames.includes(m.nombre.toLowerCase())) return;
-                    const item = document.createElement('div');
-                    item.className = 'autocomplete-item';
-                    item.innerHTML = `
-                        <span class="meta-tag tag-master">Maestro (Sin Cita)</span>
-                        <strong>${m.nombre}</strong>
-                    `;
-                    item.onclick = () => selectProv(m.nombre, null, null, null);
-                    resultsDiv.appendChild(item);
-                });
-            }
-        }
-
-        if (resultsDiv.innerHTML === '') {
-            const emptyMsg = currentRole === 'operario'
-                ? 'No hay proveedores con cita hoy que coincidan.'
-                : 'Sin coincidencias exactas. Use el nombre escrito para entrada manual.';
-            resultsDiv.innerHTML = `<div style="padding:10px; font-size:0.7rem; color:var(--text-muted);">${emptyMsg}</div>`;
-        }
-
     } catch (err) {
-        console.error('Autocomplete error:', err);
+        console.error('❌ ERROR:', err);
+        resultsDiv.innerHTML = `<div style="padding: 12px; color: #ff6b6b; text-align: center;">Error: ${err.message}</div>`;
     }
 }
+
+// =========================================================
+// FUNCIONES AUXILIARES (sin cambios)
+// =========================================================
 
 function selectProv(name, idCita, hCita, hFinCita, codigo) {
     document.getElementById('incProveedorSearch').value = name;
@@ -753,100 +895,166 @@ async function loadIncidentCategories() {
             opt.textContent = item.nombre_incidencia;
             sel.appendChild(opt);
         });
-    } catch (err) { console.error('Error loading incident types:', err); }
+    } catch (err) {
+        console.error('Error loading incident types:', err);
+    }
 }
 
-async function submitIncident() {
-    const btn = document.getElementById('btnSendIncident');
-    const date = document.getElementById('incDate').value;
-    const selectedName = document.getElementById('incTipo').value;
-    const tArrival = document.getElementById('incHoraLlegada').value;
+// =========================================================================
+// REGISTRO DE INCIDENCIAS - MÓDULO LOGÍSTICO B100
+// =========================================================================
 
-    // Get selection from autocomplete or manual entry
-    const provNameInput = document.getElementById('incProveedorSearch').value.trim();
-    const idCita = document.getElementById('selectedIdCita').value;
-    const provName = document.getElementById('selectedProvName').value || provNameInput;
-    const hCita = document.getElementById('selectedHCita').value;
-    const hFinCita = document.getElementById('selectedHFinCita').value;
+async function submitIncident(event) {
+    if (event) event.preventDefault(); // Evita recargas innecesarias
 
-    if (!date || !provName || !selectedName) {
-        showModal('Complete los campos obligatorios (Fecha, Proveedor, Incidencia).', 'DATOS INCOMPLETOS');
+    // 1. Capturar elementos del formulario con tus IDs reales
+    const inputFecha = document.getElementById('incDate');
+    const inputProveedor = document.getElementById('selectedProvName'); // Recibe la selección del autocompletado
+    const selectIncidencia = document.getElementById('incTipo');       // Selector cargado dinámicamente
+    const inputHoraLlegada = document.getElementById('incHoraLlegada'); // Campo de hora de arribo
+
+    // Campos ocultos cargados al seleccionar la cita
+    const inputIdCita = document.getElementById('selectedIdCita');
+    const inputCodigoProv = document.getElementById('selectedProvCodigo');
+    const inputHoraCita = document.getElementById('selectedHCita');
+    const inputPuerta = document.getElementById('selectedPuerta');
+
+    // 2. Extraer valores actuales
+    const fechaValor = inputFecha && inputFecha.value ? inputFecha.value : new Date().toISOString().split('T')[0];
+    const proveedorNombre = inputProveedor ? inputProveedor.value : '';
+
+    // Convertimos a número si existe, si es "" o no existe, será null
+    const idCitaValor = (inputIdCita && inputIdCita.value !== "") ? parseInt(inputIdCita.value) : null;
+
+    // Convertimos a número si existe, si es "" o no existe, será null
+    const codigoProvValor = (inputCodigoProv && inputCodigoProv.value !== "") ? parseInt(inputCodigoProv.value) : null;
+
+    const horaCitaValor = inputHoraCita && inputHoraCita.value ? inputHoraCita.value : '08:00';
+    const puertaValor = inputPuerta ? inputPuerta.value : '';
+    console.log("PUERTA ANTES DE GUARDAR:", puertaValor);
+    const horaLlegadaValor = (inputHoraLlegada && inputHoraLlegada.value !== "") ? inputHoraLlegada.value : null;
+
+    let tipoIncidencia = '';
+    if (selectIncidencia) {
+        tipoIncidencia = selectIncidencia.value;
+    }
+
+    // Validación previa al envío
+    if (!proveedorNombre) {
+        alert("Por favor, busca y selecciona un proveedor válido de la agenda del día.");
+        return;
+    }
+    if (!tipoIncidencia) {
+        alert("Por favor, seleccione el tipo de incidencia.");
+        return;
+    }
+    console.log("ID CITA ANTES DE GUARDAR:", idCitaValor);
+
+    // 3. Procesamiento y cálculo de KPIs de tiempos
+    let hrAtraso = "00:00:00";
+    let hrPerdida = "00:00:00";
+
+    // Convertimos a minúsculas para evaluar la regla de negocio de forma flexible
+    const incidenciaNormalizada = tipoIncidencia.toLowerCase();
+
+    if (incidenciaNormalizada.includes("tarde") || incidenciaNormalizada.includes("atraso")) {
+        if (horaLlegadaValor) {
+            hrAtraso = calcularDiferenciaLogistica(horaCitaValor, horaLlegadaValor);
+        }
+    } else if (incidenciaNormalizada.includes("no vino") || incidenciaNormalizada.includes("faltó")) {
+        hrPerdida = "08:00:00"; // Penalización de tiempo estándar por ausencia
+    }
+
+    // 4. Inserción directa en la tabla de Supabase usando el cliente correcto
+   try {
+    console.log("📤 Registrando incidencia con supabaseClient...");
+
+    console.log('ID CITA ANTES DE GUARDAR:', idCitaValor);
+    console.log('PROVEEDOR:', proveedorNombre);
+
+    if (!idCitaValor) {
+        showError("Debe seleccionar una cita de la lista.");
         return;
     }
 
-    const incObj = cachedTiposIncidencias.find(i => i.nombre_incidencia === selectedName);
-    if (!incObj) return;
-
-    btn.disabled = true; btn.innerHTML = 'ENVIANDO...';
-
-    try {
-        // AUTOMATIC PROVIDER CODE MAPPING
-        const capturedCodigo = document.getElementById('selectedProvCodigo').value;
-        let provCodigo = capturedCodigo;
-
-        if (!provCodigo) {
-            const { data: provData } = await supabaseClient
-                .from('maestros_proveedores')
-                .select('codigo')
-                .eq('nombre', provName)
-                .maybeSingle();
-            provCodigo = provData ? provData.codigo : 9999;
-        }
-
-        const payload = {
-            id_cita: idCita || null,
-            fecha: date,
-            proveedor: provName,
-            codigo: provCodigo,
-            incidencias: selectedName,
-            tipo: (incObj.tipo_categoria || 'GENERAL').toUpperCase(),
-            motivos: incObj.motivo_agrupado || 'N/A',
-            usuario_reporta: localStorage.getItem('b100_user'),
-            timestamp: new Date().toISOString()
-        };
-
-        // LÓGICA DE TIEMPOS
-        let delayStr = "00:00:00";
-        let lossStr = "00:00:00";
-
-        const isNoVino = payload.tipo.includes('NO VINO');
-
-        if (isNoVino && hCita && hFinCita) {
-            const duration = Math.max(0, timeToMinutes(hFinCita) - timeToMinutes(hCita));
-            const hh = Math.floor(duration / 60).toString().padStart(2, '0');
-            const mm = (duration % 60).toString().padStart(2, '0');
-            lossStr = `${hh}:${mm}:00`;
-        } else if (tArrival && hCita) {
-            const diff = timeToMinutes(tArrival) - timeToMinutes(hCita);
-            if (diff > 0) {
-                const hh = Math.floor(diff / 60).toString().padStart(2, '0');
-                const mm = (diff % 60).toString().padStart(2, '0');
-                delayStr = `${hh}:${mm}:00`;
+    const { data, error } = await supabaseClient
+        .from('incidencias_proveedores')
+        .upsert([
+            {
+                id_cita: idCitaValor,
+                fecha: fechaValor,
+                proveedor: proveedorNombre,
+                codigo: codigoProvValor,
+                incidencias: tipoIncidencia,
+                puerta: puertaValor,
+                hora_programada: horaCitaValor,
+                motivos: tipoIncidencia,
+                hr_atraso: hrAtraso,
+                hr_perdida: hrPerdida,
+                tipo: "ATRASO"
             }
-        }
+        ], {
+            onConflict: 'id_cita'
+        });
 
-        payload.hr_atraso = delayStr;
-        payload.hr_perdida = lossStr;
+    if (error) throw error;
 
-        const { error } = await supabaseClient.from('incidencias_proveedores').insert(payload);
-        if (error) throw error;
+    showNeonToast("¡Incidencia registrada con éxito!");
+setTimeout(() => {
+    fetchProvidersAutocomplete('');
+}, 500);
+    // LIMPIAR FORMULARIO
+    document.getElementById('incProveedorSearch').value = '';
+    document.getElementById('selectedIdCita').value = '';
+    document.getElementById('selectedProvName').value = '';
+    document.getElementById('selectedHCita').value = '';
+    document.getElementById('selectedHFinCita').value = '';
+    document.getElementById('incHoraLlegada').value = '';
 
-        showModal('INCIDENCIA REGISTRADA CON ÉXITO', 'OPERACIÓN EXITOSA');
+    document.getElementById('incAutocompleteResults').innerHTML = '';
+    document.getElementById('incAutocompleteResults').style.display = 'none';
 
-        // Reset specific fields
-        document.getElementById('incProveedorSearch').value = '';
-        document.getElementById('selectedIdCita').value = '';
-        document.getElementById('selectedProvName').value = '';
-        document.getElementById('selectedHCita').value = '';
-        document.getElementById('selectedHFinCita').value = '';
-        document.getElementById('selectedProvCodigo').value = '';
-        document.getElementById('incTipo').value = '';
-        document.getElementById('incHoraLlegada').value = '';
+    document.getElementById('incTipo').selectedIndex = 0;
 
-    } catch (err) {
-        console.error(err);
-        showModal('Error al registrar incidencia: ' + err.message);
-    } finally {
-        btn.disabled = false; btn.innerHTML = 'ENVIAR REPORTE';
+}
+catch (err) {
+    console.error(err);
+}
+}
+
+// 🔑 FUNCIÓN DE CÁLCULO LOGÍSTICO (Asegúrate de que quede declarada en el scope global)
+function calcularDiferenciaLogistica(horaCita, horaLlegada) {
+    if (!horaCita || !horaLlegada) return "00:00:00";
+
+    // Separar y mapear formatos "HH:MM" o "HH:MM:SS"
+    const [hCita, mCita] = horaCita.split(':').map(Number);
+    const [hLlegada, mLlegada] = horaLlegada.split(':').map(Number);
+
+    const totalMinutosCita = (hCita * 60) + mCita;
+    const totalMinutosLlegada = (hLlegada * 60) + mLlegada;
+
+    const diferenciaMinutos = totalMinutosLlegada - totalMinutosCita;
+
+    // Si llegó antes o justo a tiempo, no genera horas de retraso para KPI
+    if (diferenciaMinutos <= 0) return "00:00:00";
+
+    const horasAtraso = Math.floor(diferenciaMinutos / 60);
+    const minutosAtraso = diferenciaMinutos % 60;
+
+    return `${String(horasAtraso).padStart(2, '0')}:${String(minutosAtraso).padStart(2, '0')}:00`;
+}
+function showNeonToast(message) {
+    let toast = document.getElementById('neon-toast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'neon-toast';
+        document.body.appendChild(toast);
     }
+    toast.textContent = message;
+    toast.style.display = 'block';
+
+    // Auto-ocultar después de 2.5 segundos
+    setTimeout(() => {
+        toast.style.display = 'none';
+    }, 2500);
 }

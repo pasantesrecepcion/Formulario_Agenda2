@@ -1172,5 +1172,52 @@ input::placeholder {
 }
 
 /* =========================================================
-   FIN — CEDIS B100 style.css v4.0
+   NEON MODAL TOAST
    ========================================================= */
+#neon-toast {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(10, 15, 25, 0.95);
+    color: var(--primary-color);
+    padding: 30px 40px;
+    border: 2px solid var(--primary-color);
+    box-shadow: 0 0 40px rgba(0, 255, 255, 0.3);
+    border-radius: 8px;
+    font-family: var(--font-head);
+    font-size: 1.2rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    text-align: center;
+    z-index: 99999;
+    display: none;
+    pointer-events: none;
+    animation: modalSlide 0.4s ease-out;
+}
+
+#neon-toast.success {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 40px rgba(0, 255, 255, 0.4);
+}
+
+2. La función JavaScript Ahora,
+el modal se centrará y se auto-ocultará: function showNeonToast(message) {
+    let toast=document.getElementById('neon-toast');
+
+    if ( !toast) {
+        toast=document.createElement('div');
+        toast.id='neon-toast';
+        document.body.appendChild(toast);
+    }
+
+    toast.textContent=message;
+    toast.style.display='block';
+
+    // Auto-ocultar después de 2.5 segundos
+    setTimeout(()=> {
+            toast.style.display='none';
+        }
+
+        , 2500);
+}
