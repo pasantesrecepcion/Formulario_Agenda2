@@ -1,38 +1,37 @@
-/* =========================================================
-   CEDIS B100 — style.css v4.0 DEFINITIVO
-   Correcciones: Operario card cortado | Supervisor sin columna derecha
-   | Móvil apilado | Proveedor sin módulo de gestión
-   ========================================================= */
-
 @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;600;700&family=Orbitron:wght@500;700&family=Inter:wght@300;400;600&display=swap');
 
 /* =========================================================
    VARIABLES
    ========================================================= */
 :root {
-    --bg-main: #06090f;
-    --panel-bg: rgba(10, 15, 25, 0.95);
-    --primary-color: #00ffff;
-    --danger-color: #ff003c;
-    --incident-red: #ff073a;
-    --glow-cyan: 0 0 15px rgba(0, 255, 255, 0.4);
-    --glow-red: 0 0 15px rgba(255, 7, 58, 0.4);
-    --glow-orange: 0 0 15px rgba(255, 140, 0, 0.4);
-    --text-main: #e2e8f0;
-    --text-muted: #8fa3b8;
-    --input-bg: #0b111b;
-    --font-head: 'Orbitron', sans-serif;
-    --font-sub: 'Rajdhani', sans-serif;
+    --bg-main: #0072bc;
+    --panel-bg: #fffffffa;
+
+    --primary-color: #0054A6;
+    --danger-color: #D32F2F;
+    --incident-red: #D32F2F;
+
+    --glow-cyan: 0 2px 10px rgba(0, 84, 166, 0.15);
+    --glow-red: 0 2px 10px rgba(211, 47, 47, 0.15);
+    --glow-orange: 0 2px 10px rgba(255, 152, 0, 0.15);
+
+    --text-main: #1E293B;
+    --text-muted: #475569;
+
+    --input-bg: #FFFFFF;
+
+    --font-head: 'Inter', sans-serif;
+    --font-sub: 'Inter', sans-serif;
+
     --header-h: 72px;
-    /* altura del header — usada en cálculos */
 }
 
 [data-theme="light"] {
     --bg-main: #f8fafc;
-    --panel-bg: rgba(255, 255, 255, 0.98);
-    --primary-color: #0ea5e9;
+    --panel-bg: #0057B8;
+    --primary-color: #0373a7e5;
     --text-main: #0f172a;
-    --text-muted: #64748b;
+    --text-muted: #475569;
     --input-bg: #f1f5f9;
 }
 
@@ -62,35 +61,14 @@ body {
     perspective: 1000px;
 }
 
-/* =========================================================
-   FONDO 3D GRID
-   ========================================================= */
 .grid-background {
     position: fixed;
-    top: 50%;
-    left: 50%;
-    width: 200vw;
-    height: 200vh;
-    background-image:
-        linear-gradient(var(--primary-color) 1px, transparent 1px),
-        linear-gradient(90deg, var(--primary-color) 1px, transparent 1px);
-    background-size: 50px 50px;
-    background-position: center;
-    transform: translate(-50%, -50%) rotateX(60deg);
-    opacity: 0.1;
-    z-index: 0;
-    pointer-events: none;
-    animation: gridMove 20s linear infinite;
-}
-
-@keyframes gridMove {
-    0% {
-        background-position: center 0;
-    }
-
-    100% {
-        background-position: center 50px;
-    }
+    inset: 0; /* Corregido: posiciona en todo el borde de la pantalla */
+    width: 100%;
+    height: 100%;
+    /* Corregido: cambia de azul oscuro en los bordes a un destello suave en el centro */
+    background-image: radial-gradient(circle at center, rgba(255, 255, 255, 0.15) 0%, transparent 70%);
+    pointer-events: none; /* Evita que este fondo bloquee los clics en los inputs del formulario */
 }
 
 #particles-js {
@@ -118,7 +96,7 @@ body {
 .login-card {
     background: var(--panel-bg);
     border: 1px solid var(--primary-color);
-    box-shadow: var(--glow-cyan);
+    box-shadow: 0 4px 12px rgba(0,0,0,.08);
     border-radius: 4px;
     padding: 60px;
     width: 450px;
@@ -155,8 +133,9 @@ body {
     text-align: center;
 }
 
-.login-card input::placeholder {
-    color: rgba(0, 255, 255, 0.3) !important;
+.login-card input::input::placeholder {
+    color:  #64748B;
+    opacity: 1;
 }
 
 .login-card .btn-submit {
@@ -231,19 +210,27 @@ body {
 }
 
 .home-btn {
-    background: rgba(10, 15, 25, 0.4);
-    backdrop-filter: blur(4px);
-    border: 1px solid var(--primary-color);
-    color: var(--primary-color);
+    background: #ffffff;
+    border: 2px solid #0072bc;
+
+    color: #0072bc;
+
     width: 44px;
     height: 44px;
-    border-radius: 4px;
+
+    border-radius: 8px;
+
     cursor: pointer;
+
     display: flex;
     justify-content: center;
     align-items: center;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    transition: all .3s ease;
+
     pointer-events: auto;
+
+    box-shadow: 0 2px 8px rgba(0,114,188,.15);
 }
 
 .home-btn:hover {
@@ -254,19 +241,30 @@ body {
 }
 
 .logout-btn-circular {
-    background: rgba(255, 0, 60, 0.15);
-    border: 1px solid var(--danger-color);
+    background: #ffffff;
+
+    border: 2px solid var(--danger-color);
+
     color: var(--danger-color);
+
     width: 38px;
     height: 38px;
+
     border-radius: 50%;
+
     display: flex;
     justify-content: center;
     align-items: center;
+
     cursor: pointer;
+
     transition: all 0.3s;
+
     font-size: 1rem;
+
     pointer-events: auto;
+
+    box-shadow: 0 2px 8px rgba(211, 47, 47, 0.15);
 }
 
 .logout-btn-circular:hover {
@@ -327,7 +325,7 @@ body {
     /* Estilo */
     background: var(--panel-bg);
     border: 1px solid var(--primary-color);
-    box-shadow: var(--glow-cyan);
+    box-shadow: 0 4px 12px rgba(0,0,0,.08);
     border-radius: 4px;
     backdrop-filter: blur(10px);
     /* Flex interno */
@@ -502,16 +500,24 @@ body {
 .btn-status {
     width: 30px;
     height: 30px;
-    border-radius: 4px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(255, 255, 255, 0.05);
-    color: #fff;
+
+    border-radius: 6px;
+
+    border: 1px solid #4397ff;
+    background: #ffffffbd;
+
+    color: #0032799c;
+
     cursor: pointer;
-    font-size: 0.7rem;
+
+    font-size: 0.8rem;
+
     transition: 0.3s;
+
     display: flex;
     align-items: center;
     justify-content: center;
+
     flex-shrink: 0;
 }
 
@@ -523,10 +529,10 @@ body {
 }
 
 .btn-status.active-rec {
-    background: rgba(0, 255, 255, 0.2);
-    border-color: #00ffff;
-    color: #00ffff;
-    box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+    background: #DBEAFE;
+    border-color: #2563EB;
+    color: #2563EB;
+    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.15);
 }
 
 .btn-status.active-can {
@@ -575,32 +581,36 @@ label i {
 input,
 select {
     width: 100%;
-    background: var(--input-bg);
-    color: var(--primary-color) !important;
-    border: 1px solid rgba(0, 255, 255, 0.3);
-    border-radius: 4px;
+    background: #FFFFFF;
+    color: #1E293B !important;
+
+    border: 1px solid #CBD5E1;
+    border-radius: 8px;
+
     padding: 14px 12px;
+
     font-size: 1rem;
     font-family: var(--font-sub);
+
     outline: none;
-    transition: 0.3s;
+    transition: all .3s ease;
     box-sizing: border-box;
 }
 
 input:focus,
 select:focus {
-    border-color: var(--primary-color);
-    box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
+    border-color: #0057B8;
+    box-shadow: 0 0 0 3px rgba(0, 87, 184, 0.15);
 }
 
 select option {
-    background: #0b111b;
-    color: #00ffff;
+    background: #FFFFFF;
+    color: #1E293B;
 }
 
 input::placeholder {
-    color: rgba(0, 255, 255, 0.35);
-    font-size: 0.9rem;
+    color: #475569;
+    opacity: 1;
 }
 
 .btn-submit,
@@ -782,7 +792,7 @@ input::placeholder {
     right: 0;
     background: var(--panel-bg);
     border: 1px solid var(--primary-color);
-    box-shadow: var(--glow-cyan);
+    box-shadow: 0 4px 12px rgba(0,0,0,.08);
     border-radius: 4px;
     max-height: 250px;
     overflow-y: auto;
@@ -863,10 +873,10 @@ input::placeholder {
 
 /* Card rojo: tamaño natural + scroll si la pantalla es baja */
 .incident-card {
-    background: rgba(15, 5, 5, 0.98);
+    background: #FFFFFF;
     border: 1px solid var(--incident-red);
     border-top: 4px solid var(--incident-red);
-    box-shadow: 0 0 30px rgba(255, 7, 58, 0.2);
+    box-shadow: 0 0 30px #B22222;
     width: 100%;
     max-width: 480px;
     /* SIN altura fija: crece con el contenido */
@@ -879,7 +889,7 @@ input::placeholder {
     /* Scroll si la pantalla es muy pequeña */
     max-height: calc(100vh - var(--header-h) - 40px);
     scrollbar-width: thin;
-    scrollbar-color: rgba(255, 7, 58, 0.4) rgba(15, 5, 5, 0.8);
+    scrollbar-color: #B22222 #FFFFFF;
 }
 
 .incident-card::-webkit-scrollbar {
@@ -914,14 +924,14 @@ input::placeholder {
 .incident-card input,
 .incident-card select,
 .incident-card textarea {
-    border-color: rgba(255, 7, 58, 0.3);
-    color: #fff !important;
+    border-color: rgba(220, 38, 38, 0.3);
+    color: #1E293B !important;
 }
 
 .incident-card input:focus,
 .incident-card select:focus {
     border-color: var(--incident-red);
-    box-shadow: 0 0 15px rgba(255, 7, 58, 0.2);
+    box-shadow: 0 0 15px rgba(233, 0, 47, 0.616);
 }
 
 .btn-send-incident {
@@ -944,10 +954,7 @@ input::placeholder {
     filter: brightness(1.2);
 }
 
-/* =========================================================
-   VISTA OPERARIO — Solo el card de incidencia
-   CORRECCIÓN: contenedor perfectamente centrado, sin overflow
-   ========================================================= */
+
 .operario-side-layout,
 #dashboardContainer {
     display: flex;
@@ -982,12 +989,6 @@ input::placeholder {
     box-shadow: 0 0 25px rgba(0, 255, 255, 0.1);
 }
 
-/* =========================================================
-   VISTA PROVEEDOR
-   REGLA DE ORO: El proveedor SOLO agenda. Nunca ve gestión.
-   ========================================================= */
-
-/* Ocultar completamente el módulo de gestión al proveedor */
 .provider-mode .management-column,
 .provider-mode #managementColumn,
 .provider-mode [class*="management-column"] {
@@ -1010,10 +1011,6 @@ input::placeholder {
     margin: 0 auto !important;
 }
 
-/* =========================================================
-   RESPONSIVO MÓVIL
-   Orden visual: Título → Formulario → Módulo Gestión
-   ========================================================= */
 @media (max-width: 768px) {
 
     :root {
@@ -1169,55 +1166,4 @@ input::placeholder {
         font-size: 1rem;
         padding: 14px 10px;
     }
-}
-
-/* =========================================================
-   NEON MODAL TOAST
-   ========================================================= */
-#neon-toast {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: rgba(10, 15, 25, 0.95);
-    color: var(--primary-color);
-    padding: 30px 40px;
-    border: 2px solid var(--primary-color);
-    box-shadow: 0 0 40px rgba(0, 255, 255, 0.3);
-    border-radius: 8px;
-    font-family: var(--font-head);
-    font-size: 1.2rem;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    text-align: center;
-    z-index: 99999;
-    display: none;
-    pointer-events: none;
-    animation: modalSlide 0.4s ease-out;
-}
-
-#neon-toast.success {
-    border-color: var(--primary-color);
-    box-shadow: 0 0 40px rgba(0, 255, 255, 0.4);
-}
-
-2. La función JavaScript Ahora,
-el modal se centrará y se auto-ocultará: function showNeonToast(message) {
-    let toast=document.getElementById('neon-toast');
-
-    if ( !toast) {
-        toast=document.createElement('div');
-        toast.id='neon-toast';
-        document.body.appendChild(toast);
-    }
-
-    toast.textContent=message;
-    toast.style.display='block';
-
-    // Auto-ocultar después de 2.5 segundos
-    setTimeout(()=> {
-            toast.style.display='none';
-        }
-
-        , 2500);
 }
