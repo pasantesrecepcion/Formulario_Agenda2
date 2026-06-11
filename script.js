@@ -986,8 +986,6 @@ async function submitIncident(event) {
                 proveedor: proveedorNombre,
                 codigo: codigoProvValor,
                 incidencias: tipoIncidencia,
-                puerta: puertaValor,
-                hora_programada: horaCitaValor,
                 motivos: tipoIncidencia,
                 hr_atraso: hrAtraso,
                 hr_perdida: hrPerdida,
