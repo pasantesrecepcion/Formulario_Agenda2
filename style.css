@@ -458,6 +458,35 @@ body {
         line-height: 1.3;
         word-break: break-word;
     }
+    /* =========================================================
+       REGLAS EXCLUSIVAS PARA EL PERFIL DE OPERARIO EN MÓVIL
+       ========================================================= */
+    
+    /* Liberamos el contenedor del operario para que no se corte en pantallas chicas */
+    .operario-mode .operario-side-layout,
+    .operario-mode #dashboardContainer {
+        height: auto !important;
+        max-height: none !important;
+        overflow-y: auto !important;
+        padding: 10px 14px 40px 14px;
+    }
+
+    /* Forzamos a la tarjeta de incidencias (el cuadro rojo) a ocupar el ancho disponible */
+    .operario-mode .incident-card {
+        max-width: 100% !important;
+        width: 100% !important;
+        height: auto !important;
+        max-height: none !important; /* Evita que la tarjeta misma genere un scroll interno molesto */
+        overflow: visible !important;
+        padding: 20px 16px;
+    }
+
+    /* Aseguramos que el botón de enviar incidencia sea grande y fácil de presionar con el pulgar */
+    .operario-mode .btn-send-incident {
+        padding: 16px;
+        font-size: 1rem;
+        margin-top: 15px;
+    }
 }
 
 .mgmt-meta {
