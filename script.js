@@ -758,7 +758,7 @@ console.log("QUERY TERM:", term);
         // Obtener incidencias ya registradas
 const { data: incidencias } = await supabaseClient
     .from('incidencias_proveedores')
-    .select('id_cita')
+    .select('proveedor')
     .eq('fecha', date);
 
 // Lista de ids ya registrados
@@ -766,10 +766,10 @@ const idsRegistrados = new Set(
     (incidencias || []).map(i => Number(i.id_cita))
 );
 
-// Filtrar citas ya registradas
-const scheduledFiltrado = (scheduled || []).filter(
-    s => !idsRegistrados.has(Number(s.id_cita))
-);
+// ===================================================================
+// 2. CAMBIO APLICADO: Ahora tomamos la lista completa sin filtros
+// ===================================================================
+const scheduledFiltrado = (scheduled || []);
 
 console.log(
     "PROVEEDORES DISPONIBLES:",
@@ -803,8 +803,6 @@ console.log(scheduled);
                 item.innerHTML = `
                     <div style="flex: 1;">
                         <div style="display: flex; gap: 8px; margin-bottom: 4px;">
-                            <span style="font-size:0.65rem; color:#0ff;">⏰ ${s.hora_inicio || '--:--'}</span>
-                            <span style="font-size:0.65rem; color:#888;">🚪 ${s.puerta || 'N/A'}</span>
                         </div>
                         <strong style="font-size:0.85rem;">${proveedorDisplay}</strong>
                     </div>`;
@@ -812,9 +810,6 @@ console.log(scheduled);
                  item.onclick = async () => {
 
      console.log("CLICK EN:", s.proveedor);
-     console.log("ID:", s.id_cita);
-     console.log("PUERTA:", s.puerta);
-
      document.getElementById('incProveedorSearch').value = s.proveedor;
      document.getElementById('selectedIdCita').value = s.id_cita || '';
  const { data: provData } = await supabaseClient
@@ -843,7 +838,6 @@ console.log(
                  document.getElementById('selectedHFinCita').value = s.hora_fin || '';
                  document.getElementById('selectedPuerta').value = s.puerta || '';
                  console.log(
-    "PUERTA GUARDADA:",
     document.getElementById('selectedPuerta').value
 );
 
@@ -917,7 +911,6 @@ async function submitIncident(event) {
     const inputIdCita = document.getElementById('selectedIdCita');
     const inputCodigoProv = document.getElementById('selectedProvCodigo');
     const inputHoraCita = document.getElementById('selectedHCita');
-    const inputPuerta = document.getElementById('selectedPuerta');
 
     // 2. Extraer valores actuales
     const fechaValor = inputFecha && inputFecha.value ? inputFecha.value : new Date().toISOString().split('T')[0];
@@ -930,8 +923,6 @@ async function submitIncident(event) {
     const codigoProvValor = (inputCodigoProv && inputCodigoProv.value !== "") ? parseInt(inputCodigoProv.value) : null;
 
     const horaCitaValor = inputHoraCita && inputHoraCita.value ? inputHoraCita.value : '08:00';
-    const puertaValor = inputPuerta ? inputPuerta.value : '';
-    console.log("PUERTA ANTES DE GUARDAR:", puertaValor);
     const horaLlegadaValor = (inputHoraLlegada && inputHoraLlegada.value !== "") ? inputHoraLlegada.value : null;
 
     let tipoIncidencia = '';
@@ -968,20 +959,12 @@ async function submitIncident(event) {
     // 4. Inserción directa en la tabla de Supabase usando el cliente correcto
    try {
     console.log("📤 Registrando incidencia con supabaseClient...");
-
-    console.log('ID CITA ANTES DE GUARDAR:', idCitaValor);
     console.log('PROVEEDOR:', proveedorNombre);
-
-    if (!idCitaValor) {
-        showError("Debe seleccionar una cita de la lista.");
-        return;
-    }
 
     const { data, error } = await supabaseClient
         .from('incidencias_proveedores')
-        .upsert([
+        .insert([
             {
-                id_cita: idCitaValor,
                 fecha: fechaValor,
                 proveedor: proveedorNombre,
                 codigo: codigoProvValor,
@@ -991,9 +974,7 @@ async function submitIncident(event) {
                 hr_perdida: hrPerdida,
                 tipo: "ATRASO"
             }
-        ], {
-            onConflict: 'id_cita'
-        });
+        ],);
 
     if (error) throw error;
 
@@ -1003,11 +984,9 @@ setTimeout(() => {
 }, 500);
     // LIMPIAR FORMULARIO
     document.getElementById('incProveedorSearch').value = '';
-    document.getElementById('selectedIdCita').value = '';
     document.getElementById('selectedProvName').value = '';
     document.getElementById('selectedHCita').value = '';
     document.getElementById('selectedHFinCita').value = '';
-    document.getElementById('incHoraLlegada').value = '';
 
     document.getElementById('incAutocompleteResults').innerHTML = '';
     document.getElementById('incAutocompleteResults').style.display = 'none';
