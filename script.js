@@ -251,23 +251,7 @@ async function fetchMainProviders(term) {
     }
 }
 
-function setupRealtimeSubscription() {
-    supabaseClient
-        .channel('public:agenda_b100')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'agenda_b100' }, (payload) => {
-            console.log('Realtime update received:', payload);
-            const mgmtDate = document.getElementById('supMgmtDate');
-            if (mgmtDate && mgmtDate.value) {
-                fetchMgmtAgenda(mgmtDate.value);
-            }
-            const datePicker = document.getElementById('opDatePicker');
-            const searchInput = document.getElementById('opSearchInput');
-            if (datePicker && datePicker.value) {
-                fetchOperarioAgenda(datePicker.value, searchInput ? searchInput.value : '');
-            }
-        })
-        .subscribe();
-}
+
 
 async function findFreeDoor(fecha, startMin, endMin, role, manualDoor = 'auto') {
     const { data: existing } = await supabaseClient.from('agenda_b100').select('*').eq('fecha', fecha).neq('estado', 'Cancelado').neq('estado', 'Eliminado');
@@ -651,7 +635,7 @@ async function fetchProvidersAutocomplete(term) {
     try {
         let query = supabaseClient
             .from('agenda_b100')
-            .select('id_cita, id, proveedor, hora_inicio, hora_fin, puerta, estado')
+            .select('id_cita, proveedor, hora_inicio, hora_fin, puerta, estado')
             .eq('fecha', date)
             .order('hora_inicio', { ascending: true });
 
@@ -667,53 +651,80 @@ async function fetchProvidersAutocomplete(term) {
         if (scheduledFiltrado && scheduledFiltrado.length > 0) {
             const headerInfo = document.createElement('div');
             headerInfo.style.cssText = `padding: 6px 10px; font-size: 0.6rem; color: #0ff; border-bottom: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3);`;
-            headerInfo.textContent = term ? `📋 ${scheduledFiltrado.length} "coindicencias para ${term}"` : `📋 ${scheduledFiltrado.length} proveedores hoy`;
+            headerInfo.textContent = term ? `📋 ${scheduledFiltrado.length} "coincidencias para ${term}"` : `📋 ${scheduledFiltrado.length} proveedores hoy`;
             resultsDiv.appendChild(headerInfo);
 
             scheduledFiltrado.forEach(s => {
                 const item = document.createElement('div');
                 item.className = 'autocomplete-item';
-                item.style.cssText = `padding: 10px 12px; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.05); transition: background 0.15s; display: flex; justify-content: space-between; align-items: center;`;
+                // Estilos de la tarjeta con alto contraste (fondo claro para que resalte)
+                item.style.cssText = `padding: 10px 12px; cursor: pointer; border-bottom: 1px solid #e0e0e0; background: #ffffff; display: flex; justify-content: space-between; align-items: center; transition: background 0.15s;`;
+
+                // Efecto hover simple para entorno web/tablet
+                item.onmouseenter = () => item.style.background = '#f5f5f5';
+                item.onmouseleave = () => item.style.background = '#ffffff';
 
                 let proveedorDisplay = s.proveedor;
                 if (term && term.trim().length > 0) {
                     const escapedTerm = term.trim().replace(/[.*+?^${}()|[\]\\\/]/g, '\\$&');
                     const regex = new RegExp(`(${escapedTerm})`, 'gi');
-                    proveedorDisplay = s.proveedor.replace(regex, '<span style="background: rgba(0,255,255,0.3); color: #fff; padding: 2px 4px; border-radius: 3px;">$1</span>');
+                    // Resaltado amarillo de alto contraste con texto negro
+                    proveedorDisplay = s.proveedor.replace(regex, '<span style="background: #ffe600; color: #000000; font-weight: bold; padding: 2px 4px; border-radius: 3px;">$1</span>');
                 }
 
+                // ESTRUCTURA VISIBLE: Aquí el operario ve la diferencia de horas y puertas de inmediato
                 item.innerHTML = `
-                    <div style="flex: 1;">
-                        <strong style="font-size:0.85rem;">${proveedorDisplay}</strong>
+                    <div style="flex: 1; text-align: left; display: flex; flex-direction: column; gap: 4px;">
+                        <strong style="font-size:0.85rem; color: #1a1a1a;">${proveedorDisplay}</strong>
+                        <div style="font-size: 0.75rem; color: #666666; display: flex; gap: 12px;">
+                            <span>🚪 <b>Puerta:</b> ${s.puerta || 'Sin asignación'}</span>
+                            <span>⏰ <b>Agenda:</b> ${s.hora_inicio ? s.hora_inicio.substring(0,5) : '--:--'} - ${s.hora_fin ? s.hora_fin.substring(0,5) : '--:--'}</span>
+                        </div>
                     </div>`;
 
+                // TRANSACCIÓN AL HACER CLIC: Llenamos los inputs visibles y ocultos de tu formulario
                 item.onclick = async () => {
+                    // 1. Asignamos los datos principales al buscador y campos de control
                     document.getElementById('incProveedorSearch').value = s.proveedor;
                     document.getElementById('selectedIdCita').value = s.id_cita || s.id || '';
+                    
+                    // 2. Mapeamos los datos específicos de ESTA cita seleccionada en tu interfaz
+                    if(document.getElementById('selectedPuerta')) {
+                        document.getElementById('selectedPuerta').value = s.puerta || '';
+                    }
+                    if(document.getElementById('selectedHCita')) {
+                        document.getElementById('selectedHCita').value = s.hora_inicio || '';
+                    }
+                    if(document.getElementById('selectedHFinCita')) {
+                        document.getElementById('selectedHFinCita').value = s.hora_fin || '';
+                    }
+
+                    // 3. (Tu lógica existente) Buscar el código del proveedor en el maestro
                     const { data: provData } = await supabaseClient
                         .from('maestros_proveedores')
                         .select('codigo')
                         .eq('nombre', s.proveedor)
                         .single();
 
-                    if (provData) {
+                    if (provData && document.getElementById('selectedProvCodigo')) {
                         document.getElementById('selectedProvCodigo').value = provData.codigo || '';
                     }
 
-                    document.getElementById('selectedProvName').value = s.proveedor;
-                    document.getElementById('selectedHCita').value = s.hora_inicio || '';
-                    document.getElementById('selectedHFinCita').value = s.hora_fin || '';
-                    document.getElementById('selectedPuerta').value = s.puerta || '';
+                    if(document.getElementById('selectedProvName')) {
+                        document.getElementById('selectedProvName').value = s.proveedor;
+                    }
+                    
+                    // Ocultar los resultados
                     resultsDiv.style.display = 'none';
                 };
                 resultsDiv.appendChild(item);
             });
         } else {
-            resultsDiv.innerHTML = `<div style="padding: 20px; text-align: center; color: #888;">No hay proveedores</div>`;
+            resultsDiv.innerHTML = `<div style="padding: 20px; text-align: center; color: #333; background: #fff;">No hay proveedores agendados para esta fecha</div>`;
         }
     } catch (err) {
         console.error('❌ ERROR:', err);
-        resultsDiv.innerHTML = `<div style="padding: 12px; color: #ff6b6b; text-align: center;">Error: ${err.message}</div>`;
+        resultsDiv.innerHTML = `<div style="padding: 12px; color: #ff6b6b; text-align: center; background: #fff;">Error: ${err.message}</div>`;
     }
 }
 
@@ -734,6 +745,9 @@ async function loadIncidentCategories() {
             .select('*')
             .order('nombre_incidencia', { ascending: true });
 
+        if (error) throw error;
+
+        // Filtrar los datos cargados
         cachedTiposIncidencias = (data || []).filter(item =>
             !item.nombre_incidencia.toLowerCase().includes('no vino')
         );
@@ -742,15 +756,23 @@ async function loadIncidentCategories() {
         if (!sel) return;
         sel.innerHTML = '<option value="">Seleccione incidencia...</option>';
 
+        // Recorremos e insertamos una sola vez usando tus columnas exactas
         cachedTiposIncidencias.forEach(item => {
             const opt = document.createElement('option');
-            opt.value = item.nombre_incidencia;
+            opt.value = item.nombre_incidencia; 
             opt.textContent = item.nombre_incidencia;
+            
+            // Usamos las columnas correctas de tu base de datos utilizando datasets
+            opt.dataset.motivo = item.motivo_agrupado || item.nombre_incidencia; 
+            opt.dataset.tipo = item.tipo_categoria || 'ATRASO'; 
+            
             sel.appendChild(opt);
         });
+
     } catch (err) {
         console.error('Error loading incident types:', err);
     }
+    // ¡Listo! Se eliminó el bloque duplicado que estaba aquí afuera y rompía el scope
 }
 
 async function submitIncident(event) {
@@ -759,7 +781,11 @@ async function submitIncident(event) {
     const inputFecha = document.getElementById('incDate');
     const inputProveedor = document.getElementById('selectedProvName');
     const selectIncidencia = document.getElementById('incTipo');
-    const inputHoraLlegada = document.getElementById('incHoraLlegada');
+    const selectedOption = selectIncidencia.options[selectIncidencia.selectedIndex]
+    const inputHoraLlegada = document.getElementById('incHoraLlegada'); 
+    const tipoIncidencia = selectIncidencia.value; 
+    const motivoReal = selectedOption.dataset.motivo; 
+    const tipoReal = selectedOption.dataset.tipo; 
 
     const inputIdCita = document.getElementById('selectedIdCita');
     const inputCodigoProv = document.getElementById('selectedProvCodigo');
@@ -772,16 +798,16 @@ async function submitIncident(event) {
     const horaCitaValor = inputHoraCita && inputHoraCita.value ? inputHoraCita.value : '08:00';
     const horaLlegadaValor = (inputHoraLlegada && inputHoraLlegada.value !== "") ? inputHoraLlegada.value : null;
 
-    let tipoIncidencia = '';
-    if (selectIncidencia) {
-        tipoIncidencia = selectIncidencia.value;
-    }
+ // Ya definiste selectedOption, tipoIncidencia, motivoReal y tipoReal arriba.
+    // Simplemente usamos 'tipoIncidencia' para validar, sin declararla de nuevo:
 
     if (!proveedorNombre) {
         alert("Por favor, busca y selecciona un proveedor válido de la agenda del día.");
         return;
     }
-    if (!tipoIncidencia) {
+
+    // Usamos la variable que ya definiste arriba
+    if (!tipoIncidencia || tipoIncidencia === "") {
         alert("Por favor, seleccione el tipo de incidencia.");
         return;
     }
@@ -807,10 +833,10 @@ async function submitIncident(event) {
                     proveedor: proveedorNombre,
                     codigo: codigoProvValor,
                     incidencias: tipoIncidencia,
-                    motivos: tipoIncidencia,
+                    motivos: motivoReal,
                     hr_atraso: hrAtraso,
                     hr_perdida: hrPerdida,
-                    tipo: "ATRASO"
+                    tipo: tipoReal
                 }
             ]);
 
@@ -869,3 +895,44 @@ window.onload = () => {
     const incFormSearch = document.getElementById('incProveedorSearch');
     if (incFormSearch) incFormSearch.value = '';
 };
+
+async function setupRealtimeSubscription() {
+    // 1. CANDADO: Si no hay un usuario logueado o el rol es null, no hacemos nada
+    // Modifica 'currentRol' por la variable global exacta donde guardas el rol (ej. userRole, operario, etc.)
+    if (!window.currentRole && !document.getElementById('opDatePicker')) { 
+        console.log('🛑 Realtime pausado: Esperando a que el operario inicie sesión...');
+        return; 
+    }
+
+    // 2. Si ya hay un inicio de sesión activo, limpiamos cualquier canal previo para evitar el choque
+    const existingChannel = supabaseClient.getChannels().find(ch => ch.name === 'canal_agenda');
+    if (existingChannel) {
+        console.log('🗑️ Removiendo canal Realtime duplicado...');
+        try {
+            await supabaseClient.removeChannel(existingChannel);
+        } catch (e) {
+            console.warn('No se pudo remover el canal:', e);
+        }
+    }
+
+    // 3. Montaje limpio de la suscripción
+    supabaseClient
+        .channel('canal_agenda')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'agenda_b100' }, (payload) => {
+            console.log('Realtime update received:', payload);
+            
+            const mgmtDate = document.getElementById('supMgmtDate');
+            if (mgmtDate && mgmtDate.value) {
+                fetchMgmtAgenda(mgmtDate.value);
+            }
+            
+            const datePicker = document.getElementById('opDatePicker');
+            const searchInput = document.getElementById('opSearchInput');
+            if (datePicker && datePicker.value) {
+                fetchOperarioAgenda(datePicker.value, searchInput ? searchInput.value : '');
+            }
+        })
+        .subscribe((status) => {
+            console.log(`📡 Estado de la conexión Realtime: ${status}`);
+        });
+}
