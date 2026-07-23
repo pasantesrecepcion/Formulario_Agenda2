@@ -429,10 +429,13 @@ body {
     gap: 3px;
     min-width: 0;
     flex: 1;
-    overflow: hidden;
+    overflow: visible;
 }
 
-/* Nombre: Rajdhani (compacta), legible en espacio reducido */
+/* Nombre: Rajdhani (compacta), legible en espacio reducido.
+   Siempre puede envolver en 2 líneas -- nunca se corta con "...",
+   para poder distinguir proveedores con nombres parecidos
+   (ej. "IMPORTADORA SC" vs "IMPORTADORA SXC"). */
 .mgmt-name {
     font-size: 0.72rem;
     font-weight: 700;
@@ -441,14 +444,17 @@ body {
     /* Rajdhani: más estrecha que Orbitron */
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: normal;
+    overflow: visible;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    text-overflow: unset;
     max-width: 100%;
+    line-height: 1.3;
     display: block;
 }
 
-/* En móvil: el nombre envuelve en 2 líneas para no cortarse */
+/* En móvil: mismo comportamiento, con tipografía un poco más chica */
 @media (max-width: 768px) {
     .mgmt-name {
         white-space: normal;

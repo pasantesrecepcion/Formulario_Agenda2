@@ -363,7 +363,7 @@ function renderManagementList(appointments) {
 
         row.innerHTML = `
             <div class="mgmt-info">
-                <span class="mgmt-name">${app.proveedor}</span>
+                <span class="mgmt-name" title="${app.proveedor}">${app.proveedor}</span>
                 <span class="mgmt-meta"><i class="fas fa-clock"></i> ${app.hora_inicio} | ${app.puerta}</span>
             </div>
             <div class="mgmt-actions">
@@ -619,7 +619,7 @@ function renderOperarioList(appointments) {
 
         row.innerHTML = `
             <div class="mgmt-info">
-                <span class="mgmt-name">${app.proveedor}</span>
+                <span class="mgmt-name" title="${app.proveedor}">${app.proveedor}</span>
                 <span class="mgmt-meta"><i class="fas fa-clock"></i> ${app.hora_inicio} - ${app.hora_fin} | ${app.puerta}</span>
             </div>
             <div class="mgmt-actions">
