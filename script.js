@@ -40,6 +40,14 @@ const errorBtnNo = document.getElementById('errorBtnNo');
 let modalYesCallback = null;
 let modalNoCallback = null;
 
+// --- Módulo de cancelación con motivo (PROVEEDOR NO VINO) ---
+const cancelReasonModal = document.getElementById('cancelReasonModal');
+const cancelReasonSelect = document.getElementById('cancelReasonSelect');
+const cancelReasonConfirmBtn = document.getElementById('cancelReasonConfirmBtn');
+const cancelReasonBackBtn = document.getElementById('cancelReasonBackBtn');
+let cachedMotivosNoVino = [];
+let pendingCancel = null; // { id, proveedor, fecha }
+
 function showModal(msg, title = 'SISTEMA B100', type = 'ok', onYes = null, onNo = null) {
     if (!errorModal || !errorModalTitle || !errorModalMsg) return;
     errorModalTitle.textContent = title;
@@ -310,6 +318,7 @@ document.getElementById('logoutBtn').onclick = () => {
 };
 
 function initSupervisorManagement() {
+    loadNoVinoMotivos();
     const mgmtDatePicker = document.getElementById('supMgmtDate');
     if (mgmtDatePicker) {
         if (!mgmtDatePicker.value) mgmtDatePicker.value = new Date().toISOString().split('T')[0];
@@ -369,7 +378,7 @@ function renderManagementList(appointments) {
                     <i class="fas fa-warehouse"></i>
                 </button>
                 <button class="btn-status ${isCancelled ? 'active-can' : ''}" 
-                        onclick="toggleStatus('${app.id_cita || app.id}', '${app.estado}', 'Cancelado')" title="Cancelado">
+                        onclick="handleCancelToggle('${app.id_cita || app.id}', '${app.estado}', '${(app.proveedor || '').replace(/'/g, "\\'")}', '${app.fecha}', '${app.hora_inicio || ''}', '${app.hora_fin || ''}')" title="Cancelado">
                     <i class="fas fa-ban"></i>
                 </button>
                 <button class="btn-status" style="border-color:var(--danger-color); color:var(--danger-color);" 
@@ -388,6 +397,145 @@ async function toggleStatus(id, currentStatus, targetStatus) {
     const date = document.getElementById('supMgmtDate').value;
     fetchMgmtAgenda(date);
 }
+
+// Se dispara desde el botón de cancelar en la agenda del supervisor.
+// Si la cita YA está cancelada, el clic la reactiva (sin pedir motivo).
+// Si NO está cancelada, primero pide el motivo antes de cancelar.
+async function handleCancelToggle(id, currentStatus, proveedor, fecha, horaInicio, horaFin) {
+    const isCurrentlyCancelled = (currentStatus === 'Cancelado');
+    if (isCurrentlyCancelled) {
+        await updateGenericStatus(id, 'Agendado');
+        const date = document.getElementById('supMgmtDate').value;
+        fetchMgmtAgenda(date);
+    } else {
+        openCancelReasonModal(id, proveedor, fecha, horaInicio, horaFin);
+    }
+}
+
+// Calcula la duración agendada (hora_fin - hora_inicio) en formato HH:MM:SS.
+// Si algo falta o no es válido, devuelve null para no insertar un dato erróneo.
+function calcularDuracionAgendada(horaInicio, horaFin) {
+    if (!horaInicio || !horaFin) return null;
+    const [hI, mI] = horaInicio.split(':').map(Number);
+    const [hF, mF] = horaFin.split(':').map(Number);
+    if ([hI, mI, hF, mF].some(n => Number.isNaN(n))) return null;
+
+    let minutosTotal = (hF * 60 + mF) - (hI * 60 + mI);
+    if (minutosTotal < 0) minutosTotal += 24 * 60; // por si cruza medianoche
+    if (minutosTotal <= 0) return null;
+
+    const horas = Math.floor(minutosTotal / 60);
+    const minutos = minutosTotal % 60;
+    return `${String(horas).padStart(2, '0')}:${String(minutos).padStart(2, '0')}:00`;
+}
+
+async function loadNoVinoMotivos() {
+    try {
+        const { data, error } = await supabaseClient
+            .from('tipos_incidencias')
+            .select('*')
+            .ilike('nombre_incidencia', '%no vino%')
+            .order('motivo_agrupado', { ascending: true });
+
+        if (error) throw error;
+        cachedMotivosNoVino = data || [];
+    } catch (err) {
+        console.error('Error cargando motivos de "no vino":', err);
+    }
+}
+
+function populateCancelReasonSelect() {
+    if (!cancelReasonSelect) return;
+    cancelReasonSelect.innerHTML = '<option value="">Seleccione un motivo...</option>';
+    cachedMotivosNoVino.forEach(item => {
+        const opt = document.createElement('option');
+        opt.value = item.motivo_agrupado || item.nombre_incidencia;
+        opt.textContent = item.motivo_agrupado || item.nombre_incidencia;
+        opt.dataset.tipo = item.tipo_categoria || 'NO VINO';
+        opt.dataset.incidencia = item.nombre_incidencia;
+        cancelReasonSelect.appendChild(opt);
+    });
+}
+
+function openCancelReasonModal(id, proveedor, fecha, horaInicio, horaFin) {
+    pendingCancel = { id, proveedor, fecha, horaInicio, horaFin };
+    const label = document.getElementById('cancelReasonProvLabel');
+    if (label) label.textContent = `${proveedor}: seleccione el motivo por el cual no vino:`;
+    populateCancelReasonSelect();
+    if (cancelReasonModal) cancelReasonModal.style.display = 'flex';
+}
+
+function closeCancelReasonModal() {
+    pendingCancel = null;
+    if (cancelReasonSelect) cancelReasonSelect.selectedIndex = 0;
+    if (cancelReasonModal) cancelReasonModal.style.display = 'none';
+}
+
+async function confirmCancelWithReason() {
+    if (!pendingCancel || !cancelReasonSelect) return;
+
+    const motivoValor = cancelReasonSelect.value;
+    if (!motivoValor) {
+        showModal('Seleccione un motivo para continuar.');
+        return;
+    }
+
+    const selectedOption = cancelReasonSelect.options[cancelReasonSelect.selectedIndex];
+    const tipoValor = selectedOption.dataset.tipo || 'NO VINO';
+    const incidenciaValor = selectedOption.dataset.incidencia || 'PROVEEDOR NO VINO';
+
+    if (cancelReasonConfirmBtn) { cancelReasonConfirmBtn.disabled = true; cancelReasonConfirmBtn.textContent = 'GUARDANDO...'; }
+
+    try {
+        // 1. Marcamos la cita como Cancelado
+        await updateGenericStatus(pendingCancel.id, 'Cancelado');
+
+        // 2. Buscamos el código del proveedor en el maestro (si existe)
+        let codigoProv = null;
+        try {
+            const { data: provData } = await supabaseClient
+                .from('maestros_proveedores')
+                .select('codigo')
+                .eq('nombre', pendingCancel.proveedor)
+                .single();
+            if (provData) codigoProv = provData.codigo || null;
+        } catch (e) {
+            console.warn('No se encontró código de proveedor, se registra sin código:', e);
+        }
+
+        // 3. Insertamos automáticamente el registro de incidencia
+        // hr_perdida = duración real que tenía agendada el proveedor (hora_fin - hora_inicio)
+        const hrPerdidaCalculada = calcularDuracionAgendada(pendingCancel.horaInicio, pendingCancel.horaFin) || '00:00:00';
+
+        const { error } = await supabaseClient
+            .from('incidencias_proveedores')
+            .insert([{
+                fecha: pendingCancel.fecha,
+                proveedor: pendingCancel.proveedor,
+                codigo: codigoProv,
+                incidencias: incidenciaValor,
+                motivos: motivoValor,
+                hr_atraso: '00:00:00',
+                hr_perdida: hrPerdidaCalculada,
+                tipo: tipoValor
+            }]);
+
+        if (error) throw error;
+
+        showNeonToast('Cita cancelada y motivo registrado correctamente.');
+        closeCancelReasonModal();
+        const date = document.getElementById('supMgmtDate').value;
+        fetchMgmtAgenda(date);
+    } catch (err) {
+        console.error('Error al cancelar con motivo:', err);
+        showModal('Ocurrió un error al registrar la cancelación. Intente nuevamente.');
+    } finally {
+        if (cancelReasonConfirmBtn) { cancelReasonConfirmBtn.disabled = false; cancelReasonConfirmBtn.textContent = 'CONFIRMAR'; }
+    }
+}
+
+if (cancelReasonConfirmBtn) cancelReasonConfirmBtn.onclick = confirmCancelWithReason;
+if (cancelReasonBackBtn) cancelReasonBackBtn.onclick = closeCancelReasonModal;
 
 async function confirmDelete(id) {
     showModal('¿CONFIRMA ELIMINACIÓN PERMANENTE?', 'BORRADO DE REGISTRO', 'yesno', async () => {
@@ -769,10 +917,32 @@ async function loadIncidentCategories() {
             sel.appendChild(opt);
         });
 
+        handleIncTipoChange();
+
     } catch (err) {
         console.error('Error loading incident types:', err);
     }
     // ¡Listo! Se eliminó el bloque duplicado que estaba aquí afuera y rompía el scope
+}
+
+// Muestra el campo "Hora de Llegada" solo si el tipo de incidencia seleccionado
+// es de categoría ATRASO. Para cualquier otro tipo (packing, mercadería, OC, etc.)
+// el campo se oculta y se limpia, para que no arrastre una hora de un reporte anterior.
+function handleIncTipoChange() {
+    const sel = document.getElementById('incTipo');
+    const timeFields = document.getElementById('incTimeFields');
+    const inputHoraLlegada = document.getElementById('incHoraLlegada');
+    if (!sel || !timeFields) return;
+
+    const selectedOption = sel.options[sel.selectedIndex];
+    const esAtraso = selectedOption && selectedOption.dataset.tipo === 'ATRASO';
+
+    if (esAtraso) {
+        timeFields.style.display = 'block';
+    } else {
+        timeFields.style.display = 'none';
+        if (inputHoraLlegada) inputHoraLlegada.value = '';
+    }
 }
 
 async function submitIncident(event) {
@@ -814,13 +984,12 @@ async function submitIncident(event) {
 
     let hrAtraso = "00:00:00";
     let hrPerdida = "00:00:00";
-    const incidenciaNormalizada = tipoIncidencia.toLowerCase();
 
-    if (incidenciaNormalizada.includes("tarde") || incidenciaNormalizada.includes("atraso")) {
+    if (tipoReal === 'ATRASO') {
         if (horaLlegadaValor) {
             hrAtraso = calcularDiferenciaLogistica(horaCitaValor, horaLlegadaValor);
         }
-    } else if (incidenciaNormalizada.includes("no vino") || incidenciaNormalizada.includes("faltó")) {
+    } else if (tipoReal === 'NO VINO') {
         hrPerdida = "08:00:00";
     }
 
@@ -854,6 +1023,8 @@ async function submitIncident(event) {
         document.getElementById('incAutocompleteResults').innerHTML = '';
         document.getElementById('incAutocompleteResults').style.display = 'none';
         document.getElementById('incTipo').selectedIndex = 0;
+        document.getElementById('incHoraLlegada').value = '';
+        handleIncTipoChange();
     }
     catch (err) {
         console.error(err);
