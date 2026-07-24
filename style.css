@@ -1115,6 +1115,7 @@ input::placeholder {
         flex: none !important;
     }
 
+    
     /* En móvil: cada fila apila nombre arriba + botones abajo */
     .mgmt-row {
         flex-direction: column;
@@ -1183,6 +1184,7 @@ input::placeholder {
         max-width: 100% !important;
     }
 }
+
 
 @media (max-width: 480px) {
     .main-title {
